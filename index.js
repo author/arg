@@ -186,7 +186,7 @@ class Parser {
         }
       }
 
-      flaglist.set(flag)
+      flaglist.add(flag)
       this.#types.set(flag, type)
     })
 
