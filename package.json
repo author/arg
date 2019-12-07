@@ -1,0 +1,48 @@
+{
+  "name": "@author.io/arg",
+  "version": "1.0.0",
+  "description": "An argument parser for CLI applications.",
+  "main": "index.js",
+  "scripts": {
+    "test": "tap -R spec ./test/**/*.js",
+    "test:syntax": "standard --verbose | snazzy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/author/arg.git"
+  },
+  "keywords": [
+    "argv",
+    "arg",
+    "cli",
+    "parser",
+    "argument",
+    "command"
+  ],
+  "author": "Corey Butler",
+  "license": "BSD 3-Clause",
+  "bugs": {
+    "url": "https://github.com/author/arg/issues"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "type": "module",
+  "homepage": "https://github.com/author/arg#readme",
+  "devDependencies": {
+    "snazzy": "^8.0.0",
+    "standard": "^14.3.1",
+    "tap": "^14.10.2"
+  },
+  "standard": {
+    "ignore": [
+      "_*",
+      "_**/*",
+      "test/**/*",
+      "node_modules"
+    ],
+    "globals": [
+      "global"
+    ]
+  }
+}
