@@ -18,7 +18,7 @@ The following example automatically parses the `process.argv` variable (i.e. fla
 
 ```javascript
 #!/usr/bin/env node --experimental-modules
-import Args from './lib/arguments.js'
+import Args from '@author.io/arg'
 
 // Require specific flags
 Args.require('a', 'b', 'input')
@@ -75,7 +75,7 @@ For brevity, there is also a `configure` method which will automatically do all 
 
 ```javascript
 #!/usr/bin/env node --experimental-modules
-import Args from './lib/arguments.js'
+import Args from '@author.io/arg'
 
 Args.configure({
   a: {
@@ -109,7 +109,7 @@ _Notice the change in the `import` and the optional configuration._
 
 ```javascript
 #!/usr/bin/env node --experimental-modules
-import Parser from './lib/arguments.js'
+import Parser from '@author.io/arg'
 
 let Args = new Parser(myArgs [,cfg])
 
