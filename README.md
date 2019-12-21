@@ -54,7 +54,7 @@ console.log(Args.data)
 Using the script above in a `mycli.js` file could be executed as follows:
 
 ```sh
-mycli -a false -b "some value" -in testfile.txt -c "ignored" -c "accepted"
+./mycli.js -a false -b "some value" -in testfile.txt -c "ignored" -c "accepted"
 ```
 
 _Output:_
