@@ -113,6 +113,8 @@ class Parser {
     if (!this.#flags.has(flag)) {
       if (this.#alias.has(flag)) {
         flag = this.#alias.get(flag)
+      } else if (this.#defaults.has(flag)) {
+        return this.#defaults.get(flag)
       } else {
         return undefined
       }
