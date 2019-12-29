@@ -13,3 +13,4 @@ jobs:
     - uses: butlerlogic/action-autotag@master
       with:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        ACTIONS_STEP_DEBUG: true
