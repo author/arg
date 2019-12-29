@@ -5,16 +5,17 @@ on:
     types: [created]
 
 jobs:
-  publish-npm:
-    needs: build
+  publish-to-npm:
+    name: publish-to-npm
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/setup-node@v1
-        with:
-          node-version: 12
-          registry-url: https://registry.npmjs.org/
-      - run: npm ci
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+    - name: Checkout repository
+      uses: actions/checkout@master
+    - name: Set up Node.js
+      uses: actions/setup-node@master
+      with:
+        node-version: 12.0.0
+    - name: Publish version
+      uses: geoblink/publish-to-npm@v1.0.2
+      env:
+        NPM_AUTH_TOKEN: ${{ secrets.npm_token }} # You must set this in your repo settings
