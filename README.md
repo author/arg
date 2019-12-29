@@ -8,7 +8,7 @@ There are many CLI argument parsers for Node.js. This differs in the following w
 
 After writing countless CLI utilities, it became clear that the majority of most existing libraries contain a ton of code that really isn't necessary 99% of the time. This library is still very powerful, but works very transparently, with a minimal API.
 
-    * This tool aims to be a parser. It parses arguments and enforces any rules the user defines. It also exposes all relevant aspects of the arguments so developers can use the parsed content in any manner. It does not attempt to autogenerate help screens or apply any other non-transparent functionality. WYSIWYG.
+> *This tool aims to be a parser. It parses arguments and enforces any rules the user defines. It also exposes all relevant aspects of the arguments so developers can use the parsed content in any manner. It does not attempt to autogenerate help screens or apply any other non-transparent functionality. WYSIWYG.
 
 ## Example
 
@@ -54,13 +54,11 @@ console.log(Args.data)
 Using the script above in a `mycli.js` file could be executed as follows:
 
 ```sh
-mycli -a false -b "some value" -in testfile.txt -c "ignored" -c "accepted"
+./mycli.js -a false -b "some value" -in testfile.txt -c "ignored" -c "accepted"
 ```
 
 _Output:_
 ```sh
-(node:26749) ExperimentalWarning: The ESM module loader is experi
-mental.
 {
   a: false, 
   b: 'some value', 
@@ -143,7 +141,7 @@ Args.configure({
   flagname: {
     required: true/false,
     default: value,
-    type: string_or_primitive,
+    type: string_or_primitive, // example: 'boolean' or Boolean
     alias: string,
     single: true/false
   }, {
