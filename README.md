@@ -69,7 +69,7 @@ _Output:_
 }
 ```
 
-## Even Eimpler Syntax
+## Even Simpler Syntax
 
 For brevity, there is also a `configure` method which will automatically do all of the things the first script does, but with minimal code.
 
