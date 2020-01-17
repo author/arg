@@ -5,10 +5,12 @@ There are many CLI argument parsers for Node.js. This differs in the following w
 1. Uses modern [ES Modules](https://nodejs.org/api/esm.html#esm_ecmascript_modules) with private properties (easy to read).
 1. No dependencies.
 1. Separation of Concerns.*
+1. Also works in browsers.
 
 After writing countless CLI utilities, it became clear that the majority of most existing libraries contain a ton of code that really isn't necessary 99% of the time. This library is still very powerful, but works very transparently, with a minimal API.
 
-> *This tool aims to be a parser. It parses arguments and enforces any rules the user defines. It also exposes all relevant aspects of the arguments so developers can use the parsed content in any manner. It does not attempt to autogenerate help screens or apply any other non-transparent functionality. WYSIWYG.
+> **This tool is just a parser.** It parses arguments and optionally enforces developer-defined rules. It exposes all relevant aspects of the arguments so developers can use the parsed content in any manner. It does not attempt to autogenerate help screens or apply any other "blackbox" functionality. WYSIWYG.<br/>
+**If your tool needs more management/organization features, see the [@author.io/shell](https://github.com/author/shell) micro-framework** _(which is built on this library)_**.**
 
 ## Example
 
@@ -58,7 +60,7 @@ Using the script above in a `mycli.js` file could be executed as follows:
 ```
 
 _Output:_
-```sh
+```json
 {
   a: false, 
   b: 'some value', 
@@ -107,16 +109,16 @@ _Notice the change in the `import` and the optional configuration._
 
 ```javascript
 #!/usr/bin/env node --experimental-modules
-import Parser from '@author.io/arg'
+import { Parser } from '@author.io/arg'
 
 let Args = new Parser(myArgs [,cfg])
 
 console.log(Args.data)
 ```
 
-## API
+## API/Usage
 
-The source code is pretty easy to figure out, but here's what you can do:
+The source code is pretty easy to figure out, but here's what's possible:
 
 ### Properties
 
@@ -129,6 +131,15 @@ The source code is pretty easy to figure out, but here's what you can do:
 ## Configuration Methods
 
 The main methods are used to configure rules.
+
+The following attributes configuration attributes can be set for each flag:
+
+- `required` - Indicates the flag must be present in the command.
+- `default` - A value to use when the flag is not specified.
+- `type` - The data type. Supports primitives like `Boolean` or their text (typeof) equivalent (i.e. "`boolean`").
+- `alias` - A string representing an alternative name for the flag.
+- `aliases` - Support for multiple aliases.
+- `single` - If a flag is specified more than one, only a single value (the last one specified) will be used.
 
 ### configure({...})
 
@@ -180,6 +191,8 @@ By default, a flag can be passed in multiple times providing multiple values for
 
 Automatically executes `recognize` for any flags specified amongst the defaults.
 
+---
+
 ## Enforcement Methods
 
 Enforcement methods are designed to help toggle rules on/off as needed.
@@ -215,3 +228,16 @@ Retrieve the value of a flag. This accepts flags or aliases. If the specified fl
 ### exists(flagname)
 
 Returns a boolean value indicating the flag exists.
+
+---
+## Metadata
+
+The following methods are made available to manage metadata about flags.
+
+### describe(flagname, description)
+
+Use this message to store a description of the flag. This is stored as metadata. This will throw an error if the flag does not exist.
+
+### description(flagname)
+
+Retrieve the description of a flag. Returns `null` if no description is found.

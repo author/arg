@@ -1,9 +1,10 @@
 import { Parser } from '../index.js'
-import Test from 'tap'
-let test = Test.test
+import test from 'tape'
 
 test('Basic Tests', t => {
-  let Args = new Parser()
+  const Args = new Parser()
+
+  t.ok(Args !== undefined, 'Parser is defined.')
 
   t.end()
 })

@@ -1,3 +1,26 @@
+// Polyfill process for browsers
+let runningprocess
+try {
+  if (globalThis.hasOwnProperty('process')) {
+    runningprocess = globalThis.process 
+  } else {
+    throw new Error('No process')
+  }
+} catch (e) {
+  runningprocess = {
+    argv: {
+      slice () {
+        return []
+      }
+    },
+    exit (val) {
+      if (val === 1) {
+        throw new Error('Process exited with error.')
+      }
+    }
+  }
+}
+
 class Parser {
   #args = []
   #data = new Map()
@@ -11,6 +34,7 @@ class Parser {
   #types = new Map()
   #ignoreTypes = false
   #singleValue = new Set()
+  #descriptions = new Map()
 
   #setFlag = (flag, value) => {
     flag = this.#getFlag(flag)
@@ -46,7 +70,7 @@ class Parser {
       this.configure(cfg)
     }
 
-    this.#args = argList || process.argv.slice(2)
+    this.#args = argList || runningprocess.argv.slice(2)
 
     let skipNext = false
     
@@ -55,21 +79,35 @@ class Parser {
         let flag = this.#cleanFlag(arg)
 
         if (arg.startsWith('-')) {
-          skipNext = true         
-          
+          skipNext = true
+
           this.#flags.add(flag)
 
           if (this.#args[i + 1] !== undefined) {
             if (!this.#args[i + 1].startsWith('-')) {
               let value = this.#args[i + 1]
+              let isBoolean = false
 
-              // Handle booleans
-              if (value.trim().toLowerCase() === 'true') {
-                this.#data.set(flag, true)
-              } else if (value.trim().toLowerCase() === 'false') {
-                this.#data.set(flag, false)
-              } else {
-                // Handle everything else.
+              const argtype = this.#types.get(this.#getFlag(arg))
+              if (argtype && (argtype === 'boolean' || argtype.name.split(' ')[0].trim().toLowerCase() === 'boolean')) {
+                isBoolean = true
+                if (this.#args[i + 1] !== undefined) {
+                  if (!new Set(['true', 'false']).has(value.toLowerCase())) {
+                    skipNext = false
+                    this.#data.set(flag, true)
+                  } else {
+                    if (value.trim().toLowerCase() === 'true') {
+                      this.#data.set(flag, true)
+                    } else if (value.trim().toLowerCase() === 'false') {
+                      this.#data.set(flag, false)
+                    }
+                    
+                  }
+                }
+              }
+
+              // Handle everything else.
+              if (!isBoolean) {
                 this.#setFlag(flag, value)
               }
             } else {
@@ -94,8 +132,11 @@ class Parser {
 
   get data () {
     let data = {}
-    
-    this.#flags.forEach(flag => data[flag] = this.value(flag))
+
+    this.#flags.forEach(flag => {
+      flag = this.#getFlag(flag)
+      data[flag] = this.value(flag)
+    })
 
     if (this.#defaults.size > 0) {
       this.#defaults.forEach((value, flag) => {
@@ -107,24 +148,34 @@ class Parser {
     return data
   }
 
+  typeof (flag) {
+    const argtype = this.#types.get(this.#getFlag(flag))
+    if (!argtype) {
+      return 'string'
+    }
+
+    if (typeof argtype === 'string') {
+      return argtype
+    }
+
+    return argtype.name.split(' ')[0].trim().toLowerCase()
+  }
+
   value (flag = null) {
     flag = this.#getFlag(flag)
 
-    if (!this.#flags.has(flag)) {
-      if (this.#alias.has(flag)) {
-        flag = this.#alias.get(flag)
-      } else if (this.#defaults.has(flag)) {
-        return this.#defaults.get(flag)
-      } else {
-        return undefined
-      }
+    if (!flag) {
+      return undefined
     }
-  
-    let value = this.#data.get(flag)
 
-    if ((value === null || value === undefined) && this.#defaults.has(flag)) {
-      value = this.#defaults.get(flag)
-      this.#data.set(flag, value)
+    let value = this.#data.get(flag) || this.#defaults.get(flag)
+    if (typeof value === 'boolean' && !this.#flags.has(flag)) {
+      for (let alias of this.getFlagAliases(flag)) {
+        if (this.#flags.has(alias)) {
+          value = true
+          break
+        }
+      }
     }
 
     if (this.#singleValue.has(flag) && Array.isArray(value)) {
@@ -132,6 +183,20 @@ class Parser {
     }
 
     return value
+  }
+
+  getFlagAliases (flag) {
+    flag = this.#getFlag(flag)
+      
+    let results = []
+    
+    for (let [aliases, name] of this.#alias) {
+      if (name.trim().toLowerCase() === flag) {
+        results = results.concat(aliases)
+      }
+    }
+    
+    return new Set(results)
   }
 
   exists (flag = null) {
@@ -214,34 +279,41 @@ class Parser {
   alias (obj = {}) {
     Object.keys(obj).forEach(key => {
       let flag = this.#cleanFlag(key)
-      let alias = this.#cleanFlag(obj[key])
-      
-      this.#alias.set(alias, flag)
-
-      if (this.#required.has(alias)) {
-        this.#required.add(flag)
-        this.#required.delete(alias)
+      let aliases = obj[key]
+      if (!Array.isArray(aliases)) {
+        aliases = [aliases]
       }
 
-      if (this.#defaults.has(alias)) {
-        this.#defaults.add(flag)
-        this.#defaults.delete(alias)
-      }
+      aliases.forEach(alias => {
+        alias = this.#cleanFlag(alias)
 
-      if (this.#flags.has(alias)) {
-        this.#flags.add(flag)
-        this.#flags.delete(alias)
-      }
+        this.#alias.set(alias, flag)
 
-      if (this.#singleValue.has(alias)) {
-        this.#singleValue.add(flag)
-        this.#singleValue.delete(alias)
-      }
+        if (this.#required.has(alias)) {
+          this.#required.add(flag)
+          this.#required.delete(alias)
+        }
 
-      if (this.#data.has(alias)) {
-        this.#data.set(flag, this.#data.get(alias))
-        this.#data.delete(alias)
-      }
+        if (this.#defaults.has(alias)) {
+          this.#defaults.add(flag)
+          this.#defaults.delete(alias)
+        }
+
+        if (this.#flags.has(alias)) {
+          this.#flags.add(flag)
+          this.#flags.delete(alias)
+        }
+
+        if (this.#singleValue.has(alias)) {
+          this.#singleValue.add(flag)
+          this.#singleValue.delete(alias)
+        }
+
+        if (this.#data.has(alias)) {
+          this.#data.set(flag, this.#data.get(alias))
+          this.#data.delete(alias)
+        }
+      })
     })
 
     if (this.#alias.size > 0) {
@@ -260,6 +332,16 @@ class Parser {
     }
   }
 
+  // Set a description for a flag
+  describe (flag, desc) {
+    this.#descriptions.set(this.#getFlag(flag), desc)
+  }
+
+  // Retrieve a description of the flag.
+  description (flag) {
+    return this.#descriptions.get(this.#getFlag(flag))
+  }
+
   configure (cfg = null) {
     if (cfg) {
       let data = {
@@ -267,7 +349,8 @@ class Parser {
         alias: {},
         required: new Set(),
         types: {},
-        single: new Set()
+        single: new Set(),
+        descriptions: new Map()
       }
 
       Object.keys(cfg).forEach(flag => {
@@ -276,9 +359,18 @@ class Parser {
           data.defaults[flag] = obj.default
         }
         if (obj.hasOwnProperty('alias')) {
-          data.alias[flag] = obj.alias
+          obj.aliases = Array.isArray(obj.alias) ? obj.alias : [obj.alias]
         }
-        if (obj.hasOwnProperty('required')) {
+        if (obj.hasOwnProperty('aliases') && Array.isArray(obj.aliases)) {
+          data.alias[flag] = data.alias[flag] || []
+          data.alias[flag] = data.alias[flag].concat(obj.aliases)
+        }
+
+        // Deduplicate aliases
+        if (data.alias.hasOwnProperty(flag)) {
+          data.alias[flag] = Array.from(new Set(data.alias[flag]))
+        }
+        if (obj.hasOwnProperty('required') && obj.required) {
           data.required.add(flag)
         }
         if (obj.hasOwnProperty('type')) {
@@ -286,6 +378,9 @@ class Parser {
         }
         if (obj.hasOwnProperty('single')) {
           data.single.add(flag)
+        }
+        if (obj.hasOwnProperty('description')) {
+          data.descriptions.set(flag, obj.description)
         }
       })
 
@@ -300,6 +395,8 @@ class Parser {
       if (data.single.size > 0) {
         this.single.apply(this, Array.from(data.single))
       }
+
+      data.descriptions.forEach((value, key) => this.describe(key, value))
     }
   }
 
@@ -347,8 +444,8 @@ class Parser {
 
         if (this.#types.has(flag)) {
           let type = this.#types.get(flag)
-          let value = this.#data.get(flag)
-          
+          let value = this.value(flag)
+
           if (typeof value !== type.valueOf().name.toLowerCase()) {
             this.#violations.add(`The value provided by the "${flag}" flag is not a ${type.valueOf().name} ("${value}" is a ${typeof value}).`)
             valid = false
@@ -365,12 +462,18 @@ class Parser {
     return Array.from(this.#violations)
   }
 
+  get unrecognizedFlags () {
+    let result = new Set()
+    this.#flags.forEach(flag => !this.#known.has(this.#getFlag(flag)) && result.add(flag))
+    return Array.from(result)
+  }
+
   enforceRules () {
     let valid = this.valid
 
     if (!valid) {
       console.log(Array.from(this.#violations).join('\n'))
-      process.exit(1)
+      return runningprocess.exit(1)
     }
 
     return valid
