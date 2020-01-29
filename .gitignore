@@ -2,6 +2,7 @@
 .*
 !.gitignore
 !.npmignore
+!.github
 node_modules
 test/output/**/*
 /**/*.old
