@@ -51,7 +51,7 @@ jobs:
         if: steps.autotagger.outputs.tagname != ''
         uses: author/action-publish@stable
         with:
-          token: ${{ secrets.REGISTRY_TOKEN }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
 
       - name: Rollback
         if: failure()
