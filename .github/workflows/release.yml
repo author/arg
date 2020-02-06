@@ -52,3 +52,44 @@ jobs:
         uses: author/action-publish@stable
         with:
           token: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: Rollback
+        if: failure()
+        uses: author/action-rollback@stable
+        with:
+          release_id: ${{ steps.release.outputs.id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Failure Notification
+        if: failure() && steps.autotagger.outputs.tagname != ''
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: Github # Optional. (defaults to webhook app)
+          SLACK_CHANNEL: author # Optional. (defaults to webhook)
+          SLACK_AVATAR: https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/Npm-logo.svg/320px-Npm-logo.svg.png
+        uses: Ilshidur/action-slack@master
+        with:
+          args: '@author.io/arg ${{ steps.autotagger.outputs.tagname }} failed to publish and was rolled back.' # Optional
+
+      - name: Success Notification
+        if: success() && steps.autotagger.outputs.tagname != ''
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: Github # Optional. (defaults to webhook app)
+          SLACK_CHANNEL: author # Optional. (defaults to webhook)
+          SLACK_AVATAR: https://upload.wikimedia.org/wikipedia/commons/thumb/d/db/Npm-logo.svg/320px-Npm-logo.svg.png
+        uses: Ilshidur/action-slack@master
+        with:
+          args: '@author.io/arg ${{ steps.autotagger.outputs.tagname }} published to npm.' # Optional
+      
+      - name: Inaction Notification
+        if: steps.autotagger.outputs.tagname == ''
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: Github # Optional. (defaults to webhook app)
+          SLACK_CHANNEL: author # Optional. (defaults to webhook)
+          SLACK_AVATAR: "https://cdn.freebiesupply.com/logos/large/2x/nodejs-icon-logo-png-transparent.png" # Optional. can be (repository, sender, an URL) (defaults to webhook app avatar)
+        uses: Ilshidur/action-slack@master
+        with:
+          args: "New code was added to @author/arg's master branch." # Optional
