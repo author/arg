@@ -57,7 +57,7 @@ jobs:
         if: failure()
         uses: author/action-rollback@stable
         with:
-          release_id: ${{ steps.release.outputs.id }}
+          tag: ${{ steps.autotagger.outputs.tagname }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
