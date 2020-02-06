@@ -50,7 +50,7 @@ jobs:
         id: publish
         if: steps.autotagger.outputs.tagname != ''
         uses: author/action-publish@stable
-        with:
+        env:
           REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
 
       - name: Rollback
