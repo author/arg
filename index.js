@@ -1,26 +1,3 @@
-// Polyfill process for browsers
-let runningprocess
-try {
-  if (globalThis.hasOwnProperty('process')) {
-    runningprocess = globalThis.process 
-  } else {
-    throw new Error('No process')
-  }
-} catch (e) {
-  runningprocess = {
-    argv: {
-      slice () {
-        return []
-      }
-    },
-    exit (val) {
-      if (val === 1) {
-        throw new Error('Process exited with error.')
-      }
-    }
-  }
-}
-
 class Parser {
   #args = []
   #data = new Map()
@@ -70,7 +47,11 @@ class Parser {
       this.configure(cfg)
     }
 
-    this.#args = argList || runningprocess.argv.slice(2)
+    if (globalThis.hasOwnProperty('argv')) {
+      this.#args = process.argv.slice(2)
+    } else {
+      this.#args = argList || []
+    }
 
     let skipNext = false
     
@@ -473,7 +454,11 @@ class Parser {
 
     if (!valid) {
       console.log(Array.from(this.#violations).join('\n'))
-      return runningprocess.exit(1)
+      if (globalThis.hasOwnProperty('process')) {
+        return globalThis.process.exit(1)
+      } else {
+        throw new Error('Process exited with error.')
+      }
     }
 
     return valid
