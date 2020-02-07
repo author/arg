@@ -188,7 +188,16 @@ class Parser {
 
     flag = this.#getFlag(flag)
 
-    return this.#flags.has(flag)
+    if (!this.#flags.has(flag)) {
+      for (const alias of this.getFlagAliases(flag)) {
+        if (this.#flags.has(alias)) {
+          return true
+        }
+      }
+      return false
+    }
+
+    return true
   }
 
   require () {
@@ -419,7 +428,7 @@ class Parser {
     if (this.#required.size > 0) {
       for (let arg of this.#required) {
         let flag = this.#getFlag(arg)
-
+        
         if (!this.exists(flag)) {
           this.#violations.add(`"${flag}" is a required flag.`)
           valid = false
