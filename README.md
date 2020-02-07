@@ -41,6 +41,9 @@ Args.alias({
   input: 'in'
 })
 
+// Optionally specify a list of possible flag values (autocreates the flag if it does not already exist, updates options if it does)
+Args.setOptions('name', 'john', 'jane')
+
 // Restrict a flag to a single value (applies when the same flag is passed multiple times).
 Args.single('c')
 
@@ -56,7 +59,7 @@ console.log(Args.data)
 Using the script above in a `mycli.js` file could be executed as follows:
 
 ```sh
-./mycli.js -a false -b "some value" -in testfile.txt -c "ignored" -c "accepted"
+./mycli.js -a false -b "some value" -in testfile.txt -c "ignored" -c "accepted" -name jane
 ```
 
 _Output:_
@@ -65,7 +68,8 @@ _Output:_
   a: false, 
   b: 'some value', 
   c: 'accepted',
-  input: 'testfile.txt'
+  input: 'testfile.txt',
+  name: 'jane'
 }
 ```
 
@@ -91,6 +95,9 @@ Args.configure({
   },
   input: {
     alias: 'in'
+  },
+  name: {
+    options: ['john', 'jane']
   }
 })
 
@@ -140,6 +147,7 @@ The following attributes configuration attributes can be set for each flag:
 - `alias` - A string representing an alternative name for the flag.
 - `aliases` - Support for multiple aliases.
 - `single` - If a flag is specified more than one, only a single value (the last one specified) will be used.
+- `options` - An array of valid values for the flag.
 
 ### configure({...})
 
@@ -154,7 +162,8 @@ Args.configure({
     default: value,
     type: string_or_primitive, // example: 'boolean' or Boolean
     alias: string,
-    single: true/false
+    single: true/false,
+    options: [...]
   }, {
     ...
   }
@@ -187,7 +196,13 @@ Automatically executes `recognize` for any flags specified amongst the defaults.
 
 ### single('flag1', 'flag2', ...)
 
-By default, a flag can be passed in multiple times providing multiple values for the same flag. This method can be used to retrieve only one value (the last one specified). 
+By default, a flag can be passed in multiple times providing multiple values for the same flag. This method can be used to retrieve only one value (the last one specified).
+
+Automatically executes `recognize` for any flags specified amongst the defaults.
+
+### setOptions('flag', 'optionA', 'optionB')
+
+A list/enumeration of values will be enforced _if_ the flag is set. If a flag contains a value not present in the list, a violation will be recognized.
 
 Automatically executes `recognize` for any flags specified amongst the defaults.
 
@@ -196,6 +211,8 @@ Automatically executes `recognize` for any flags specified amongst the defaults.
 ## Enforcement Methods
 
 Enforcement methods are designed to help toggle rules on/off as needed.
+
+There is no special method to enforce a flag value to be within a list of valid options, because this is enforced automatically.
 
 ### disallowUnrecognized()
 

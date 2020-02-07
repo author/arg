@@ -12,6 +12,7 @@ class Parser {
   #ignoreTypes = false
   #singleValue = new Set()
   #descriptions = new Map()
+  #enums = new Map()
 
   #setFlag = (flag, value) => {
     flag = this.#getFlag(flag)
@@ -313,6 +314,23 @@ class Parser {
     }
   }
 
+  // Set enumerable options for a flag
+  setOptions () {
+    if (arguments.length < 2) {
+      return
+    }
+
+    const enums = Array.from(arguments)
+    const flag = this.#getFlag(enums.shift())
+
+    if (!this.#flags.has(flag)) {
+      this.#flags.add(flag)
+      this.recognize(flag)
+    }
+
+    this.#enums.set(flag, new Set(enums))
+  }
+
   // Set a description for a flag
   describe (flag, desc) {
     this.#descriptions.set(this.#getFlag(flag), desc)
@@ -331,7 +349,8 @@ class Parser {
         required: new Set(),
         types: {},
         single: new Set(),
-        descriptions: new Map()
+        descriptions: new Map(),
+        options: []
       }
 
       Object.keys(cfg).forEach(flag => {
@@ -363,6 +382,9 @@ class Parser {
         if (obj.hasOwnProperty('description')) {
           data.descriptions.set(flag, obj.description)
         }
+        if (obj.hasOwnProperty('options') || obj.hasOwnProperty('enum')) {
+          data.options = obj.hasOwnProperty('options') || obj.hasOwnProperty('enum')
+        }
       })
 
       this.defaults(data.defaults)
@@ -375,6 +397,10 @@ class Parser {
 
       if (data.single.size > 0) {
         this.single.apply(this, Array.from(data.single))
+      }
+
+      if (data.options.length > 0) {
+        this.setOptions(flag, data.options)
       }
 
       data.descriptions.forEach((value, key) => this.describe(key, value))
@@ -429,6 +455,19 @@ class Parser {
 
           if (typeof value !== type.valueOf().name.toLowerCase()) {
             this.#violations.add(`The value provided by the "${flag}" flag is not a ${type.valueOf().name} ("${value}" is a ${typeof value}).`)
+            valid = false
+          }
+        }
+      }
+    }
+
+    if (this.#enums.size > 0) {
+      for (let flag of this.#flags) {
+        flag = this.#getFlag(flag)
+
+        if (this.#enums.has(flag)) {
+          if (!this.#enums.get(flag).has(this.value(flag))) {
+            this.#violations.add(`The value provided by the ${flag} (${this.value(flag)}) is not a valid option. Valid options include: ${Array.from(this.#enums.get(flag).join(', '))}.`)
             valid = false
           }
         }
