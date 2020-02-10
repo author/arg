@@ -1,41 +1,20 @@
+import Flag from "./flag.js"
+
 class Parser {
   #args = []
-  #data = new Map()
-  #flags = new Set()
-  #defaults = new Map()
-  #alias = new Map()
-  #required = new Set()
-  #known = new Set()
+  #flags = {}
   #allowUnrecognized = true
   #violations = new Set()
-  #types = new Map()
   #ignoreTypes = false
-  #singleValue = new Set()
-  #descriptions = new Map()
-  #enums = new Map()
-
-  #setFlag = (flag, value) => {
-    flag = this.#getFlag(flag)
-
-    if (this.#data.has(flag)) {
-      this.#data.set(flag, [...this.#data.get(flag), value])
-    } else {
-      this.#data.set(flag, value)
-    }
-  }
+  #aliases = new Set()
+  #validFlags = null
 
   #cleanFlag = flag => {
     return flag.replace(/^\-+/, '').trim().toLowerCase()
   }
 
-  #getFlag = flag => {
-    flag = this.#cleanFlag(flag)
-
-    if (this.#alias.has(flag)) {
-      flag = this.#alias.get(flag)
-    }
-
-    return flag
+  #flagRef = flag => {
+    return (this.getFlag(flag) || this.addFlag(flag))
   }
 
   constructor (argList = null, cfg = null) {
@@ -49,58 +28,140 @@ class Parser {
     }
 
     if (globalThis.hasOwnProperty('argv')) {
-      this.#args = process.argv.slice(2)
-    } else {
-      this.#args = argList || []
+      this.parse(process.argv.slice(2))
+    } else if (argList !== null) {
+      this.parse(argList)
+    }
+  }
+
+  get length() {
+    return this.#args.length
+  }
+
+  get valid () {
+    this.#validFlags = true
+    this.#violations = new Set()
+
+    for (const [flagname, flag] of Object.entries(this.#flags)) {
+      if (!this.#aliases.has(flagname)) {
+        flag.strictTypes = !this.#ignoreTypes
+
+        if (!flag.valid) {
+          this.#validFlags = false
+          this.#violations = new Set([...this.#violations, ...flag.violations])
+        }
+
+        if (!this.#allowUnrecognized && !flag.recognized) {
+          this.#validFlags = false
+          this.#violations.add(`"${flagname}" is unrecognized.`)
+        }
+      }
+    }
+
+    return this.#validFlags
+  }
+
+  get violations() {
+    this.#validFlags = this.#validFlags || this.valid // Helps prevent unnecessarily rerunning the validity getter
+    return Array.from(this.#violations)
+  }
+
+  get unrecognizedFlags () {
+    let result = new Set()
+    for (const [flagname, flag] of Object.entries(this.#flags)) {
+      if (!this.#aliases.has(flagname)) {
+        if (!flag.recognized) {
+          result.add(flagname)
+        }
+      }
+    }
+
+    return Array.from(result)
+  }
+
+  get recognizedFlags () {
+    let result = new Set()
+    for (const [flagname, flag] of Object.entries(this.#flags)) {
+      if (!this.#aliases.has(flagname)) {
+        if (flag.recognized) {
+          result.add(flagname)
+        }
+      }
+    }
+
+    return Array.from(result)
+  }
+  
+  get flags () {
+    return Object.keys(this.#flags)
+  }
+
+  get data () {
+    let data = {}
+    for (const [name, flag] of Object.entries(this.#flags)) {
+      if (!this.#aliases.has(name)) {
+        data[flag.name] = flag.value
+      }
+    }
+
+    return data
+  }
+
+  configure(config = {}) {
+    for (let [name, cfg] of Object.entries(config)) {
+      cfg.name = name
+      this.addFlag(cfg).recognized = true
+    }
+  }
+
+  parse(input) {
+    if (!input) {
+      return
     }
 
     let skipNext = false
-    
+    this.#args = (Array.isArray(input) ? input : [input])
     this.#args.forEach((arg, i, args) => {
       if (!skipNext || arg.startsWith('-')) {
-        let flag = this.#cleanFlag(arg)
-
         if (arg.startsWith('-')) {
           skipNext = true
-
-          this.#flags.add(flag)
+          
+          const flag = this.#flagRef(arg)
 
           if (this.#args[i + 1] !== undefined) {
             if (!this.#args[i + 1].startsWith('-')) {
               let value = this.#args[i + 1]
               let isBoolean = false
 
-              const argtype = this.#types.get(this.#getFlag(arg))
-              if (argtype && (argtype === 'boolean' || argtype.name.split(' ')[0].trim().toLowerCase() === 'boolean')) {
+              if (flag.type === 'boolean') {
                 isBoolean = true
+
                 if (this.#args[i + 1] !== undefined) {
                   if (!new Set(['true', 'false']).has(value.toLowerCase())) {
                     skipNext = false
-                    this.#data.set(flag, true)
+                    flag.value = true
                   } else {
                     if (value.trim().toLowerCase() === 'true') {
-                      this.#data.set(flag, true)
+                      flag.value = true
                     } else if (value.trim().toLowerCase() === 'false') {
-                      this.#data.set(flag, false)
+                      flag.value = false
                     }
-                    
                   }
                 }
               }
 
               // Handle everything else.
               if (!isBoolean) {
-                this.#setFlag(flag, value)
+                flag.value = value
               }
             } else {
-              this.#data.set(flag, true)
+              flag.value = true
             }
           } else {
-            this.#data.set(flag, true)
+            flag.value = true
           }
-        } else {
-          this.#flags.add(flag)
-          this.#data.set(flag, true)
+        } else if(!this.exists(arg)) {
+          this.addFlag(arg).value = true
         }
       } else {
         skipNext = false
@@ -108,107 +169,75 @@ class Parser {
     })
   }
 
-  get flags () {
-    return Array.from(this.#flags)
+  getFlag (flag) {
+    return this.#flags[this.#cleanFlag(flag)]
   }
 
-  get data () {
-    let data = {}
+  addFlag(cfg) {
+    cfg = typeof cfg === 'object' ? cfg : { name: cfg }
 
-    this.#flags.forEach(flag => {
-      flag = this.#getFlag(flag)
-      data[flag] = this.value(flag)
-    })
+    const clean = this.#cleanFlag(cfg.name)
 
-    if (this.#defaults.size > 0) {
-      this.#defaults.forEach((value, flag) => {
-        flag = this.#getFlag(flag)
-        data[flag] = this.value(flag) || value
+    if (this.#flags.hasOwnProperty(clean)) {
+      throw new Error(`"${cfg.name}" flag already exists.`)
+    }
+
+    const flag = new Flag(cfg)
+
+    flag.strictTypes = !this.#ignoreTypes
+
+    this.#flags[clean] = flag
+
+    if (flag.aliases.length > 0) {
+      flag.aliases.forEach(alias => {
+        Object.defineProperty(this.#flags, this.#cleanFlag(alias), { enumerable: true, get: () => this.#flags[clean] })
+        this.#aliases.add(this.#cleanFlag(alias))
       })
     }
 
-    return data
+    return this.#flags[clean]
+  }
+
+  exists (flag) {
+    return this.#flags.hasOwnProperty(this.#cleanFlag(flag))
   }
 
   typeof (flag) {
-    const argtype = this.#types.get(this.#getFlag(flag))
-    if (!argtype) {
-      return 'string'
+    if (!this.exists(flag)) {
+      return 'undefined'
     }
 
-    if (typeof argtype === 'string') {
-      return argtype
-    }
-
-    return argtype.name.split(' ')[0].trim().toLowerCase()
+    return this.getFlag(flag).type
   }
 
   value (flag = null) {
-    flag = this.#getFlag(flag)
-
-    if (!flag) {
+    if (!this.exists(flag)) {
       return undefined
     }
 
-    let value = this.#data.get(flag) || this.#defaults.get(flag)
-    if (typeof value === 'boolean' && !this.#flags.has(flag)) {
-      for (let alias of this.getFlagAliases(flag)) {
-        if (this.#flags.has(alias)) {
-          value = true
-          break
-        }
-      }
-    }
-
-    if (this.#singleValue.has(flag) && Array.isArray(value)) {
-      return value.shift()
-    }
-
-    return value
+    return this.getFlag(flag).value
   }
 
   getFlagAliases (flag) {
-    flag = this.#getFlag(flag)
-      
-    let results = []
-    
-    for (let [aliases, name] of this.#alias) {
-      if (name.trim().toLowerCase() === flag) {
-        results = results.concat(aliases)
-      }
-    }
-    
-    return new Set(results)
-  }
-
-  exists (flag = null) {
-    if (flag === null) {
-      return false
+    if (!this.exists(flag)) {
+      return new Set()
     }
 
-    flag = this.#getFlag(flag)
-
-    if (!this.#flags.has(flag)) {
-      for (const alias of this.getFlagAliases(flag)) {
-        if (this.#flags.has(alias)) {
-          return true
-        }
-      }
-      return false
-    }
-
-    return true
+    return new Set(this.getFlag(flag).aliases)
   }
 
   require () {
-    let args = Array.from(arguments).map(arg => this.#getFlag(arg))
-    this.#required = new Set([...this.#required, ...args])
-    this.recognize(...arguments)
+    Array.from(arguments).map(arg => {
+      if (!this.#aliases.has(arg)) {
+        const flag = this.#flagRef(arg)
+        flag.required = true
+        flag.recognized = true
+      }
+    })
   }
 
   recognize () {
-    let args = Array.from(arguments).map(arg => this.#getFlag(arg))
-    this.#known = new Set([...this.#known, ...args])
+    Array.from(arguments).map(arg => (this.getFlag(arg) || this.addFlag(arg)).recognized = true)
   }
 
   disallowUnrecognized() {
@@ -219,288 +248,87 @@ class Parser {
     this.#allowUnrecognized = true
   }
 
-  types (obj = {}) {
-    let flaglist = new Set()
-
-    Object.keys(obj).forEach(key => {
-      let flag = this.#getFlag(key)
-      let type = obj[key]
-
-      if (typeof type === 'string') {
-        switch (type.trim().toLowerCase()) {
-          case 'number':
-          case 'integer':
-          case 'float':
-            type = Number
-            break
-          case 'bigint':
-            type = BigInt
-            break
-          case 'boolean':
-            type = Boolean
-            break
-          default:
-            type = String
-        }
-      }
-
-      flaglist.add(flag)
-      this.#types.set(flag, type)
-    })
-
-    if (flaglist.size > 0) {
-      this.recognize.apply(this, Array.from(flaglist))
-    }
-  }
-
   ignoreDataTypes() {
     this.#ignoreTypes = false
+    
+    for (let [name, flag] of Object.entries(this.#flags)) {
+      flag.strictTypes = false
+    }
   }
 
   enforceDataTypes() {
     this.#ignoreTypes = true
+
+    for (let [name, flag] of Object.entries(this.#flags)) {
+      flag.strictTypes = true
+    }
   }
 
   defaults (obj = {}) {
-    let keys = Object.keys(obj)
-    keys.forEach(flag => this.#defaults.set(this.#getFlag(flag), obj[flag]))
-    this.recognize.apply(this, keys)
+    for (let [name, value] of Object.entries(obj)) {
+      const flag = this.#flagRef(name)
+      flag.default = value
+      flag.recognized = true
+    }
   }
 
   alias (obj = {}) {
-    Object.keys(obj).forEach(key => {
-      let flag = this.#cleanFlag(key)
-      let aliases = obj[key]
-      if (!Array.isArray(aliases)) {
-        aliases = [aliases]
+    for (let [flagname, alias] of Object.entries(obj)) {
+      const flag = this.#flagRef(flagname)
+
+      if (this.#aliases.has(alias) && flagname.toLowerCase() !== flag.name.toLowerCase()) {
+        throw new Error(`The "${alias}" alias is already associated to the "${this.getFlag(alias).name}" flag.`)
       }
 
-      aliases.forEach(alias => {
-        alias = this.#cleanFlag(alias)
+      if (!flag.hasAlias(alias)) {
+        flag.createAlias.apply(flag, alias)
+      }
 
-        this.#alias.set(alias, flag)
-
-        if (this.#required.has(alias)) {
-          this.#required.add(flag)
-          this.#required.delete(alias)
-        }
-
-        if (this.#defaults.has(alias)) {
-          this.#defaults.add(flag)
-          this.#defaults.delete(alias)
-        }
-
-        if (this.#flags.has(alias)) {
-          this.#flags.add(flag)
-          this.#flags.delete(alias)
-        }
-
-        if (this.#singleValue.has(alias)) {
-          this.#singleValue.add(flag)
-          this.#singleValue.delete(alias)
-        }
-
-        if (this.#data.has(alias)) {
-          this.#data.set(flag, this.#data.get(alias))
-          this.#data.delete(alias)
-        }
-      })
-    })
-
-    if (this.#alias.size > 0) {
-      this.recognize.apply(this, Array.from(this.#alias.values()))
+      flag.recognized = true
     }
   }
 
   // In case of duplicate flag, ignore all but last flag value
-  single () {
-    if (arguments.length === 0) {
-      this.#singleValue = new Set([...this.#singleValue, ...this.#flags])
-    } else {
-      for (let flag of arguments) {
-        this.#singleValue.add(this.#getFlag(flag))
-      }
+  allowMultipleValues () {
+    for (const flag of arguments) {
+      this.#flagRef(flag).allowMultipleValues()      
+    }
+  }
+
+  preventMultipleValues() {
+    for (const flag of arguments) {
+      this.#flagRef(flag).preventMultipleValues()
     }
   }
 
   // Set enumerable options for a flag
   setOptions () {
     if (arguments.length < 2) {
-      return
+      throw new Error('setOptions method requires the flag name and at least one value (i.e. minimum 2 arguments).')
     }
 
     const enums = Array.from(arguments)
-    const flag = this.#getFlag(enums.shift())
+    const flag = this.#flagRef(enums.shift())
 
-    if (!this.#flags.has(flag)) {
-      this.#flags.add(flag)
-      this.recognize(flag)
-    }
-
-    this.#enums.set(flag, new Set(enums))
+    flag.recognized = true
+    flag.options = enums
   }
 
   // Set a description for a flag
   describe (flag, desc) {
-    this.#descriptions.set(this.#getFlag(flag), desc)
+    this.#flagRef(flag).description = desc
   }
 
   // Retrieve a description of the flag.
-  description (flag) {
-    return this.#descriptions.get(this.#getFlag(flag))
-  }
-
-  configure (cfg = null) {
-    if (cfg) {
-      let data = {
-        defaults: {},
-        alias: {},
-        required: new Set(),
-        types: {},
-        single: new Set(),
-        descriptions: new Map(),
-        options: []
-      }
-
-      Object.keys(cfg).forEach(flag => {
-        let obj = cfg[flag]
-        if (obj.hasOwnProperty('default')) {
-          data.defaults[flag] = obj.default
-        }
-        if (obj.hasOwnProperty('alias')) {
-          obj.aliases = Array.isArray(obj.alias) ? obj.alias : [obj.alias]
-        }
-        if (obj.hasOwnProperty('aliases') && Array.isArray(obj.aliases)) {
-          data.alias[flag] = data.alias[flag] || []
-          data.alias[flag] = data.alias[flag].concat(obj.aliases)
-        }
-
-        // Deduplicate aliases
-        if (data.alias.hasOwnProperty(flag)) {
-          data.alias[flag] = Array.from(new Set(data.alias[flag]))
-        }
-        if (obj.hasOwnProperty('required') && obj.required) {
-          data.required.add(flag)
-        }
-        if (obj.hasOwnProperty('type')) {
-          data.types[flag] = obj.type
-        }
-        if (obj.hasOwnProperty('single')) {
-          data.single.add(flag)
-        }
-        if (obj.hasOwnProperty('description')) {
-          data.descriptions.set(flag, obj.description)
-        }
-        if (obj.hasOwnProperty('options') || obj.hasOwnProperty('enum')) {
-          data.options = obj.hasOwnProperty('options') || obj.hasOwnProperty('enum')
-        }
-      })
-
-      this.defaults(data.defaults)
-      this.alias(data.alias)
-      this.types(data.types)
-      
-      if (data.required.size > 0) {
-        this.require.apply(this, Array.from(data.required))
-      }
-
-      if (data.single.size > 0) {
-        this.single.apply(this, Array.from(data.single))
-      }
-
-      if (data.options.length > 0) {
-        this.setOptions(flag, data.options)
-      }
-
-      data.descriptions.forEach((value, key) => this.describe(key, value))
-    }
-  }
-
-  get length () {
-    return this.#args.length
-  }
-
-  get valid () {
-    let valid = true
-    
-    this.#violations = new Set()
-    
-    if (this.#required.size > 0) {
-      for (let arg of this.#required) {
-        let flag = this.#getFlag(arg)
-        
-        if (!this.exists(flag)) {
-          this.#violations.add(`"${flag}" is a required flag.`)
-          valid = false
-        }
-      }
-    }
-
-    if (!this.#allowUnrecognized) {
-      if (this.length > 0) {
-        if (this.#known.size === 0) {
-          this.#flags.forEach(flag => this.#violations.add(`"${flag}" is unrecognized.`))
-          valid = false
-        } else {
-          for (let arg of this.#flags) {
-            let flag = this.#getFlag(arg)
-            
-            if (!this.#known.has(flag)) {
-              this.#violations.add(`"${arg}" is unrecognized.`)
-              valid = false
-            }
-          }
-        }   
-      }
-    }
-
-    if (!this.#ignoreTypes && this.#types.size > 0 && this.length > 0) {
-      for (let flag of this.#flags) {
-        flag = this.#getFlag(flag)
-
-        if (this.#types.has(flag)) {
-          let type = this.#types.get(flag)
-          let value = this.value(flag)
-
-          if (typeof value !== type.valueOf().name.toLowerCase()) {
-            this.#violations.add(`The value provided by the "${flag}" flag is not a ${type.valueOf().name} ("${value}" is a ${typeof value}).`)
-            valid = false
-          }
-        }
-      }
-    }
-
-    if (this.#enums.size > 0) {
-      for (let flag of this.#flags) {
-        flag = this.#getFlag(flag)
-
-        if (this.#enums.has(flag)) {
-          if (!this.#enums.get(flag).has(this.value(flag))) {
-            this.#violations.add(`The value provided by the ${flag} (${this.value(flag)}) is not a valid option. Valid options include: ${Array.from(this.#enums.get(flag).join(', '))}.`)
-            valid = false
-          }
-        }
-      }
-    }
-
-    return valid
-  }
-
-  get violations () {
-    let valid = this.valid
-    return Array.from(this.#violations)
-  }
-
-  get unrecognizedFlags () {
-    let result = new Set()
-    this.#flags.forEach(flag => !this.#known.has(this.#getFlag(flag)) && result.add(flag))
-    return Array.from(result)
+  description (flagname) {
+    const flag = this.getFlag(flagname)
+    return flag ? flag.description : 'undefined'
   }
 
   enforceRules () {
-    let valid = this.valid
+    this.#validFlags = this.valid
 
-    if (!valid) {
+    if (!this.#validFlags) {
       console.log(Array.from(this.#violations).join('\n'))
       if (globalThis.hasOwnProperty('process')) {
         return globalThis.process.exit(1)
@@ -509,7 +337,7 @@ class Parser {
       }
     }
 
-    return valid
+    return this.#validFlags
   }
 }
 
