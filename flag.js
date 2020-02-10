@@ -78,7 +78,6 @@ export default class Flag {
 
   get valid () {
     const value = this.value
-
     this.#violations = new Set()
     
     if (this.#required) {
@@ -105,16 +104,16 @@ export default class Flag {
     if (this.#strictTypes) {
       const type = this.type
 
-      if (type !== 'any' && type !== '*') {
+      if (type !== 'any' && type !== '*' && this.recognized) {
         if (this.#allowMultipleValues) {
           const invalidTypes = value.filter(item => typeof item !== type)
           
           if (invalidTypes.length > 0) {        
-            invalidTypes.forEach(v => this.#violations.add(`"${v}" should be a ${ type }, not ${ typeof v }.`))
+            invalidTypes.forEach(v => this.#violations.add(`"${this.name}" (${v}) should be a ${ type }, not ${ typeof v }.`))
             return false
           }
         } else if (value !== null && typeof value !== type) {
-          this.#violations.add(`"${value}" should be a ${ type }, not ${typeof value}.`)
+          this.#violations.add(`"${this.name}" should be a ${ type }, not ${typeof value}.`)
           return false
         }
       }
