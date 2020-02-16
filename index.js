@@ -98,28 +98,44 @@ class Parser {
 
   get data () {
     let data = {}
+    let sources = {}
+
     for (const [name, flag] of Object.entries(this.#flags)) {
       if (!this.#aliases.has(name)) {
         data[flag.name] = flag.value
+        Object.defineProperty(sources, flag.name, {
+          enumerable: true,
+          get() {
+            return flag
+          }
+        })
       }
     }
+
+    Object.defineProperty(data, 'flagSource', {
+      enumerable: false,
+      writable: false,
+      configurable: false,
+      value: sources
+    })
 
     return data
   }
 
-  configure(config = {}) {
+  configure (config = {}) {
     for (let [name, cfg] of Object.entries(config)) {
       cfg.name = name
       this.addFlag(cfg).recognized = true
     }
   }
 
-  parse(input) {
+  parse (input) {
     if (!input) {
       return
     }
 
     let skipNext = false
+    let skipped = []
     this.#args = (Array.isArray(input) ? input : [input])
     this.#args.forEach((arg, i, args) => {
       if (!skipNext || arg.startsWith('-')) {
@@ -164,7 +180,25 @@ class Parser {
           this.addFlag(arg).value = true
         }
       } else {
+        skipped.push([arg, args[i - 1]])
         skipNext = false
+      }
+    })
+
+    // Handle orphan input items
+    skipped.forEach(flag => {
+      const value = flag[0]
+      const priorFlagValue = flag[1]
+
+      if (priorFlagValue === null || priorFlagValue === undefined) {
+        this.addFlag(value)
+      } else {
+        const priorFlag = this.getFlag(priorFlagValue)
+        if (priorFlag && (priorFlag.recognized || priorFlag.inputName.startsWith('-'))) {
+          priorFlag.value = value
+        } else {
+          this.addFlag(value)
+        }
       }
     })
   }
@@ -343,4 +377,4 @@ class Parser {
 
 const DefaultArgumentParser = new Parser()
 
-export { DefaultArgumentParser as default, Parser }
+export { DefaultArgumentParser as default, Parser, Flag }

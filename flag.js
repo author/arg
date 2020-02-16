@@ -1,5 +1,6 @@
 export default class Flag {
   #name
+  #rawName
   #description
   #default = null
   #alias = new Set()
@@ -21,6 +22,7 @@ export default class Flag {
       throw new Error('Flag name is required.')
     }
 
+    this.#rawName = cfg.name
     this.#name = cfg.name.replace(/^-+/gi, '').trim()
 
     if (cfg.hasOwnProperty('description')) {
@@ -58,6 +60,10 @@ export default class Flag {
     if (cfg.hasOwnProperty('options')) {
       this.options = cfg.options
     }
+  }
+
+  get inputName () {
+    return this.#rawName
   }
 
   get recognized () {
