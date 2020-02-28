@@ -45,7 +45,7 @@ Args.alias({
 Args.setOptions('name', 'john', 'jane')
 
 // Allow a flag to accept multiple values (applies when the same flag is defined multiple times).
-Args.allowMultiple('c')
+Args.allowMultipleValues('c')
 
 // Do not allow unrecognized flags
 Args.disallowUnrecognized() 
@@ -91,7 +91,7 @@ Args.configure({
   },
   c: {
     default: 'test',
-    allowMultiple: true
+    allowMultipleValues: true
   },
   input: {
     alias: 'in'
@@ -146,7 +146,7 @@ The following attributes configuration attributes can be set for each flag:
 - `type` - The data type. Supports primitives like `Boolean` or their text (typeof) equivalent (i.e. "`boolean`").
 - `alias` - A string representing an alternative name for the flag.
 - `aliases` - Support for multiple aliases.
-- `allowMultiple` - If a flag is specified more than once, capture all values (instead of only the last one specified).
+- `allowMultipleValues` - If a flag is specified more than once, capture all values (instead of only the last one specified).
 - `options` - An array of valid values for the flag.
 
 ### configure({...})
@@ -162,7 +162,7 @@ Args.configure({
     default: value,
     type: string_or_primitive, // example: 'boolean' or Boolean
     alias: string,
-    allowMultiple: true/false,
+    allowMultipleValues: true/false,
     options: [...]
   }, {
     ...
@@ -194,7 +194,7 @@ Identify aliases for recognized flags.
 
 Automatically executes `recognize` for any flags specified amongst the defaults.
 
-### allowMultiple('flag1', 'flag2', ...)
+### allowMultipleValues('flag1', 'flag2', ...)
 
 By default, if the same flag is defined multiple times, only the last value is recognized. Setting `allowMultiple` on a flag will capture all values (as an array).
 
