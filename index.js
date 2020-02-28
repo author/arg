@@ -152,7 +152,7 @@ class Parser {
               if (flag.type === 'boolean') {
                 isBoolean = true
 
-                if (this.#args[i + 1] !== undefined) {
+                if (this.#args[i + 1] !== undefined) {               
                   if (!new Set(['true', 'false']).has(value.toLowerCase())) {
                     skipNext = false
                     flag.value = true
@@ -194,9 +194,7 @@ class Parser {
         this.addFlag(value)
       } else {
         const priorFlag = this.getFlag(priorFlagValue)
-        if (priorFlag && (priorFlag.recognized || priorFlag.inputName.startsWith('-'))) {
-          priorFlag.value = value
-        } else {
+        if (!(priorFlag && (priorFlag.recognized || priorFlag.inputName.startsWith('-')))) {
           this.addFlag(value)
         }
       }
