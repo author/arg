@@ -240,11 +240,18 @@ export default class Flag {
   }
 
   createAlias() {
-    for (const alias of arguments) {
+    for (let alias of arguments) {
+      // Convert set to array
+      if (alias instanceof Set) {
+        alias = Array.from(alias)
+      }
+
       if (Array.isArray(alias)) {
         this.createAlias(...alias)
-      } else {
+      } else if (typeof alias === 'string') {
         this.#alias.add(alias.replace(/^-+/gi, ''))
+      } else {
+        throw new Error(`Cannot create an alias for a ${typeof alias} element. Please specify a string instead.`)
       }
     }
   }
