@@ -12,7 +12,7 @@ After writing countless CLI utilities, it became clear that the majority of most
 > **This tool is just a parser.** It parses arguments and optionally enforces developer-defined rules. It exposes all relevant aspects of the arguments so developers can use the parsed content in any manner. It does not attempt to autogenerate help screens or apply any other "blackbox" functionality. WYSIWYG.<br/>
 **If your tool needs more management/organization features, see the [@author.io/shell](https://github.com/author/shell) micro-framework** _(which is built atop this library)_**.**
 
-## Example
+## Verbose Example
 
 **Install:** `npm install @author.io/arg`
 
@@ -73,7 +73,7 @@ _Output:_
 }
 ```
 
-## Even Simpler Syntax
+## Simpler Syntax
 
 For brevity, there is also a `configure` method which will automatically do all of the things the first script does, but with minimal code.
 
@@ -125,35 +125,15 @@ console.log(Args.data)
 
 ## API/Usage
 
-The source code is pretty easy to figure out, but here's what's possible:
+The source code is pretty easy to figure out, but here's an overview:
 
-### Properties
+## Configuring Parser Logic
 
-- `flags`: An array of the unique flag names passed to the application.
-- `data`: A key/value object representing all data passed to the application. If a flag is passed in more than once and duplicates are _not_ suppressed, the value will be an array.
-- `length` The total number of arguments passed to the application.
-- `valid` A boolean representing whether all of the validation rules passed or not.
-- `violations` An array of violations (this is an empty array when everything is valid).
+There are two ways to configure the parser. A single `configure()` method can describe everything, or individual methods can be used to dynamically define the parsing logic.
 
-## Configuration Methods
+### Using `configure()`
 
-The main methods are used to configure rules.
-
-The following attributes configuration attributes can be set for each flag:
-
-- `required` - Indicates the flag must be present in the command.
-- `default` - A value to use when the flag is not specified.
-- `type` - The data type. Supports primitives like `Boolean` or their text (typeof) equivalent (i.e. "`boolean`").
-- `alias` - A string representing an alternative name for the flag.
-- `aliases` - Support for multiple aliases.
-- `allowMultipleValues` - If a flag is specified more than once, capture all values (instead of only the last one specified).
-- `options` - An array of valid values for the flag.
-
-### configure({...})
-
-This method accepts a configuration, which will automatically invoke all of the appropriate configuration methods using a shorthand syntax.
-
-For example:
+The `configure()` method accepts a shorthand (yet-easily-understood) configuration object.
 
 ```javascript
 Args.configure({
@@ -170,37 +150,51 @@ Args.configure({
 })
 ```
 
-### require('flag1', 'flag2', ...)
+_Purpose:_
+
+- `required` - Indicates the flag must be present in the command.
+- `default` - A value to use when the flag is not specified.
+- `type` - The data type. Supports primitives like `Boolean` or their text (typeof) equivalent (i.e. "`boolean`").
+- `alias` - A string representing an alternative name for the flag.
+- `aliases` - Support for multiple aliases.
+- `allowMultipleValues` - If a flag is specified more than once, capture all values (instead of only the last one specified).
+- `options` - An array of valid values for the flag.
+
+### Using Individual Methods
+
+The following methods can be used to dynamically construct the parsing logic, or modify existing logic.
+
+#### require('flag1', 'flag2', ...)
 
 Require the presence of specific flags amongst the arguments. Automatically executes `recognize` for all required flags.
 
-### recognize('flag1', 'flag2', ...)
+#### recognize('flag1', 'flag2', ...)
 
 Register "known" flags. This is useful when you want to prevent unrecognized flags from being passed to the application.
 
-### types({...})
+#### types({...})
 
 Identify the data type of a flag or series of flags. Automatically executes `recognize` for any flags specified amongst the data types.
 
-### defaults({...})
+#### defaults({...})
 
 Identify default values for flags. 
 
 Automatically executes `recognize` for any flags specified amongst the defaults.
 
-### alias({...})
+#### alias({...})
 
 Identify aliases for recognized flags. 
 
 Automatically executes `recognize` for any flags specified amongst the defaults.
 
-### allowMultipleValues('flag1', 'flag2', ...)
+#### allowMultipleValues('flag1', 'flag2', ...)
 
 By default, if the same flag is defined multiple times, only the last value is recognized. Setting `allowMultiple` on a flag will capture all values (as an array).
 
 Automatically executes `recognize` for any flags specified amongst the defaults.
 
-### setOptions('flag', 'optionA', 'optionB')
+#### setOptions('flag', 'optionA', 'optionB')
 
 A list/enumeration of values will be enforced _if_ the flag is set. If a flag contains a value not present in the list, a violation will be recognized.
 
@@ -212,49 +206,71 @@ Automatically executes `recognize` for any flags specified amongst the defaults.
 
 Enforcement methods are designed to help toggle rules on/off as needed.
 
-There is no special method to enforce a flag value to be within a list of valid options, because this is enforced automatically.
+There is no special method to enforce a flag value to be within a list of valid options (enumerability), _because this is enforced automatically_.
 
-### disallowUnrecognized()
+#### disallowUnrecognized()
 
 Sets a rule to prevent the presence of any unrecognized flags.
 
-### allowUnrecognized()
+#### allowUnrecognized()
 
 Sets a rule to allow the presence of unrecognized flags (this is the default behavior).
 
-### ignoreDataTypes()
+#### ignoreDataTypes()
 
 This will ignore data type checks, even if the `types` method has been used to enforce data types.
 
-### enforceDataTypes()
+#### enforceDataTypes()
 
 This will enforce data type checks. This is the default behavior.
+
+---
 
 ## Helper Methods
 
 The following helper methods are made available for developers who need quick access to flags and enforcement functionality.
 
-### enforceRules()
+#### enforceRules()
 
 This method can be used within a process to validate flags and exit with error when validation fails.
 
-### value(flagname)
+#### value(flagname)
 
 Retrieve the value of a flag. This accepts flags or aliases. If the specified flag does not exist, a value of `undefined` is returned.
 
-### exists(flagname)
+#### exists(flagname)
 
 Returns a boolean value indicating the flag exists.
 
 ---
-## Metadata
+## Defining Metadata
 
 The following methods are made available to manage metadata about flags.
 
-### describe(flagname, description)
+#### describe(flagname, description)
 
-Use this message to store a description of the flag. This is stored as metadata. This will throw an error if the flag does not exist.
+Use this message to store a description of the flag. This will throw an error if the flag does not exist.
 
-### description(flagname)
+#### description(flagname)
 
 Retrieve the description of a flag. Returns `null` if no description is found.
+
+---
+
+## Parser Properties
+
+These are readable properties of the parser. For example:
+
+```javascript
+import Args from '@author.io/arg'
+
+Args.configure({...})
+
+console.log(Args.flags, Args.data, ...)
+```
+
+- `flags`: An array of the unique flag names passed to the application.
+- `data`: A key/value object representing all data passed to the application. If a flag is passed in more than once and duplicates are _not_ suppressed, the value will be an array.
+- `length` The total number of arguments passed to the application.
+- `valid` A boolean representing whether all of the validation rules passed or not.
+- `violations` An array of violations (this is an empty array when everything is valid).

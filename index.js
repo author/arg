@@ -1,5 +1,7 @@
 import Flag from "./flag.js"
 
+const PARSER = /\s*(?:((?:(?:"(?:\\.|[^"])*")|(?:'[^']*')|(?:\\.)|\S)+)\s*)/gi
+
 class Parser {
   #args = []
   #flags = {}
@@ -134,9 +136,19 @@ class Parser {
       return
     }
 
+    // Normalize the input
+    // If an array is provided, assume the input has been split into
+    // argumnets. Otherwise use the parser RegEx pattern to split
+    // into arguments.
+    this.#args = Array.isArray(input) ? input : input.match(PARSER).map(i => {
+      i = i.trim()
+      const match = i.match(/((^"(.*)"$)|(^'(.*)'$))/i)
+      return match !== null ? match[3] : i
+    })
+
     let skipNext = false
     let skipped = []
-    this.#args = (Array.isArray(input) ? input : [input])
+    
     this.#args.forEach((arg, i, args) => {
       if (!skipNext || arg.startsWith('-')) {
         if (arg.startsWith('-')) {
