@@ -12,6 +12,7 @@ export default class Flag {
   #value = null
   #violations = new Set()
   #recognized = false
+  #validator = null
 
   constructor (cfg = {}) {
     if (typeof cfg === 'string') {
@@ -59,6 +60,14 @@ export default class Flag {
 
     if (cfg.hasOwnProperty('options')) {
       this.options = cfg.options
+    }
+
+    if (cfg.hasOwnProperty('validate')) {
+      if (!(cfg.validate instanceof RegExp || typeof cfg.validate === 'function')) {
+        throw new Error(`The "validate" configuration attribute for ${this.#rawName} is invalid. Only RegExp and functions are supported (received ${typeof cfg.validate})`)
+      }
+
+      this.#validator = cfg.validate
     }
   }
 
@@ -120,6 +129,25 @@ export default class Flag {
           }
         } else if (value !== null && typeof value !== type) {
           this.#violations.add(`"${this.name}" should be a ${ type }, not ${typeof value}.`)
+          return false
+        }
+      }
+    }
+
+    if (this.#validator !== null) {
+      if (typeof this.#validator === 'function') {
+        if (!this.#validator(value)) {
+          this.#violations.add(`"${value}" is invalid (failed custom validation).`)
+          return false
+        }
+      } else {
+        if (typeof value !== 'string' && this.#validator instanceof RegExp) {
+          this.#violations.add(`"${value}" is invalid (failed custom validation).`)
+          return false
+        }
+
+        if (!this.#validator.test(value)) {
+          this.#violations.add(`"${value}" is invalid (failed custom validation).`)
           return false
         }
       }

@@ -143,7 +143,8 @@ Args.configure({
     type: string_or_primitive, // example: 'boolean' or Boolean
     alias: string,
     allowMultipleValues: true/false,
-    options: [...]
+    options: [...],
+    validate: function(){}/RegExp
   }, {
     ...
   }
@@ -159,6 +160,7 @@ _Purpose:_
 - `aliases` - Support for multiple aliases.
 - `allowMultipleValues` - If a flag is specified more than once, capture all values (instead of only the last one specified).
 - `options` - An array of valid values for the flag.
+- `validate` - This is a function or regular expression that determines whether the value of the flag is valid or not. A function receives the value as the only argument and is expected to return `true` or `false` (where `true` means the value is valid). If a RegExp is provided, the [RegExp.test()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/test) method is executed against the flag value. The validate feature is used **in addition** to other validation mechanisms (options, typing, etc).
 
 ### Using Individual Methods
 
