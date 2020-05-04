@@ -206,15 +206,12 @@ class Parser {
         this.addFlag(value)
       } else {
         let priorFlag = this.getFlag(priorFlagValue)
-        if (!(priorFlag instanceof Flag)) {
-          console.log('HERE', priorFlag)
-          // priorFlag = priorFlag()
-          // console.log(priorFlag)
+        if (priorFlag.hasOwnProperty('aliasOf')) {
+          priorFlag = priorFlag.aliasOf
+          priorFlag.value = value
         }
         
-        // console.log(flag, '<<<<', priorFlagValue ,'>>>>', priorFlag.name, priorFlag.recognized, '||'+priorFlag.inputName, ')))> ' + priorFlag.inputName.startsWith('-'))
         if (!(priorFlag && (priorFlag.recognized || priorFlagValue.startsWith('-')))) {
-          // console.log('---Add', value)
           this.addFlag(value)
         }
       }
@@ -242,7 +239,6 @@ class Parser {
 
     if (flag.aliases.length > 0) {
       flag.aliases.forEach(alias => {
-        // console.log(alias, this.#flags.get(clean).inputName)
         this.#flags.set(this.#cleanFlag(alias), { aliasOf: this.#flags.get(clean) })
         this.#aliases.add(this.#cleanFlag(alias))
       })
@@ -384,7 +380,6 @@ class Parser {
     this.#validFlags = this.valid
 
     if (!this.#validFlags) {
-      console.log(Array.from(this.#violations).join('\n'))
       if (globalThis.hasOwnProperty('process')) {
         return globalThis.process.exit(1)
       } else {

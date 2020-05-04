@@ -44,7 +44,7 @@ test('Support custom validation methods', t => {
   }
 
   let Args = new Parser(input, cfg)
-  console.log(Args.violations, '\n', input, '\n', Args.data)
+
   t.ok(Args.violations.length === 0, `Expected no violations, recognized ${Args.violations.length}.`)
 
   cfg.bad = {
