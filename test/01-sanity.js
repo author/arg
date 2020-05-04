@@ -21,15 +21,15 @@ test('Escaped parameters', t => {
     , 'Parsed complex input'
   )
 
-  console.log(new Parser('cfw run -r -hdr "CF-IPCountry=US" -kv "test=something" -kv "a=test" demo.js', {
-    kv: {
-      allowMultipleValues: true
-    },
-    header: {
-      alias: 'hdr',
-      allowMultipleValues: true
-    }
-  }).data)
+  // console.log(new Parser('cfw run -r -hdr "CF-IPCountry=US" -kv "test=something" -kv "a=test" demo.js', {
+  //   kv: {
+  //     allowMultipleValues: true
+  //   },
+  //   header: {
+  //     alias: 'hdr',
+  //     allowMultipleValues: true
+  //   }
+  // }).data)
 
   t.end()
 })
@@ -39,11 +39,12 @@ test('Support custom validation methods', t => {
   const cfg = {
     value: {
       alias: 'v',
-      validate: value => value === 'ok'
+      validate: vl => vl === 'ok'
     }
   }
 
   let Args = new Parser(input, cfg)
+  console.log(Args.violations, '\n', input, '\n', Args.data)
   t.ok(Args.violations.length === 0, `Expected no violations, recognized ${Args.violations.length}.`)
 
   cfg.bad = {

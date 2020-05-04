@@ -205,8 +205,16 @@ class Parser {
       if (priorFlagValue === null || priorFlagValue === undefined) {
         this.addFlag(value)
       } else {
-        const priorFlag = this.getFlag(priorFlagValue)
-        if (!(priorFlag && (priorFlag.recognized || priorFlag.inputName.startsWith('-')))) {
+        let priorFlag = this.getFlag(priorFlagValue)
+        if (!(priorFlag instanceof Flag)) {
+          console.log('HERE', priorFlag)
+          // priorFlag = priorFlag()
+          // console.log(priorFlag)
+        }
+        
+        // console.log(flag, '<<<<', priorFlagValue ,'>>>>', priorFlag.name, priorFlag.recognized, '||'+priorFlag.inputName, ')))> ' + priorFlag.inputName.startsWith('-'))
+        if (!(priorFlag && (priorFlag.recognized || priorFlagValue.startsWith('-')))) {
+          // console.log('---Add', value)
           this.addFlag(value)
         }
       }
@@ -234,7 +242,8 @@ class Parser {
 
     if (flag.aliases.length > 0) {
       flag.aliases.forEach(alias => {
-        this.#flags.set(this.#cleanFlag(alias), { enumerable: true, get: () => this.#flags.get(clean) })
+        // console.log(alias, this.#flags.get(clean).inputName)
+        this.#flags.set(this.#cleanFlag(alias), { aliasOf: this.#flags.get(clean) })
         this.#aliases.add(this.#cleanFlag(alias))
       })
     }
