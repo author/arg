@@ -4,7 +4,7 @@ const PARSER = /\s*(?:((?:(?:"(?:\\.|[^"])*")|(?:'[^']*')|(?:\\.)|\S)+)\s*)/gi
 
 class Parser {
   #args = []
-  #flags = {}
+  #flags = new Map()
   #allowUnrecognized = true
   #violations = new Set()
   #ignoreTypes = false
@@ -44,7 +44,7 @@ class Parser {
     this.#validFlags = true
     this.#violations = new Set()
 
-    for (const [flagname, flag] of Object.entries(this.#flags)) {
+    this.#flags.forEach((flag, flagname) => {
       if (!this.#aliases.has(flagname)) {
         flag.strictTypes = !this.#ignoreTypes
 
@@ -58,7 +58,7 @@ class Parser {
           this.#violations.add(`"${flagname}" is unrecognized.`)
         }
       }
-    }
+    })
 
     return this.#validFlags
   }
@@ -70,39 +70,39 @@ class Parser {
 
   get unrecognizedFlags () {
     let result = new Set()
-    for (const [flagname, flag] of Object.entries(this.#flags)) {
+    this.#flags.forEach((flag, flagname) => {
       if (!this.#aliases.has(flagname)) {
         if (!flag.recognized) {
           result.add(flagname)
         }
       }
-    }
+    })
 
     return Array.from(result)
   }
 
   get recognizedFlags () {
     let result = new Set()
-    for (const [flagname, flag] of Object.entries(this.#flags)) {
+    this.#flags.forEach((flag, flagname) => {
       if (!this.#aliases.has(flagname)) {
         if (flag.recognized) {
           result.add(flagname)
         }
       }
-    }
+    })
 
     return Array.from(result)
   }
   
   get flags () {
-    return Object.keys(this.#flags)
+    return Array.from(this.#flags.keys())
   }
 
   get data () {
     let data = {}
     let sources = {}
 
-    for (const [name, flag] of Object.entries(this.#flags)) {
+    this.#flags.forEach((flag, name) => {
       if (!this.#aliases.has(name)) {
         data[flag.name] = flag.value
         Object.defineProperty(sources, flag.name, {
@@ -112,7 +112,7 @@ class Parser {
           }
         })
       }
-    }
+    })
 
     Object.defineProperty(data, 'flagSource', {
       enumerable: false,
@@ -214,7 +214,7 @@ class Parser {
   }
 
   getFlag (flag) {
-    return this.#flags[this.#cleanFlag(flag)]
+    return this.#flags.get(this.#cleanFlag(flag))
   }
 
   addFlag(cfg) {
@@ -222,7 +222,7 @@ class Parser {
 
     const clean = this.#cleanFlag(cfg.name)
 
-    if (this.#flags.hasOwnProperty(clean)) {
+    if (this.#flags.has(clean)) {
       throw new Error(`"${cfg.name}" flag already exists.`)
     }
 
@@ -230,20 +230,20 @@ class Parser {
 
     flag.strictTypes = !this.#ignoreTypes
 
-    this.#flags[clean] = flag
+    this.#flags.set(clean, flag)
 
     if (flag.aliases.length > 0) {
       flag.aliases.forEach(alias => {
-        Object.defineProperty(this.#flags, this.#cleanFlag(alias), { enumerable: true, get: () => this.#flags[clean] })
+        this.#flags.set(this.#cleanFlag(alias), { enumerable: true, get: () => this.#flags.get(clean) })
         this.#aliases.add(this.#cleanFlag(alias))
       })
     }
 
-    return this.#flags[clean]
+    return this.#flags.get(clean)
   }
 
   exists (flag) {
-    return this.#flags.hasOwnProperty(this.#cleanFlag(flag))
+    return this.#flags.has(this.#cleanFlag(flag))
   }
 
   typeof (flag) {
@@ -295,17 +295,19 @@ class Parser {
   ignoreDataTypes() {
     this.#ignoreTypes = false
     
-    for (let [name, flag] of Object.entries(this.#flags)) {
+    this.#flags.forEach((flag, name) => {
       flag.strictTypes = false
-    }
+      this.#flags.set(name, flag)
+    })
   }
 
   enforceDataTypes() {
     this.#ignoreTypes = true
 
-    for (let [name, flag] of Object.entries(this.#flags)) {
+    this.#flags.forEach((flag, name) => {
       flag.strictTypes = true
-    }
+      this.#flags.set(name, flag)
+    })
   }
 
   defaults (obj = {}) {
