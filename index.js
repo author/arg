@@ -101,7 +101,7 @@ class Parser {
   get data () {
     let data = {}
     let sources = {}
-
+    
     this.#flags.forEach((flag, name) => {
       if (!this.#aliases.has(name)) {
         data[flag.name] = flag.value
@@ -214,6 +214,12 @@ class Parser {
         if (!(priorFlag && (priorFlag.recognized || priorFlagValue.startsWith('-')))) {
           this.addFlag(value)
         }
+      }
+    })
+
+    this.#flags.forEach((flag, name) => {
+      if (this.#aliases.has(name) && flag.value !== undefined) {
+        flag.aliasOf.value = flag.value
       }
     })
   }
