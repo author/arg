@@ -73,11 +73,10 @@ class Parser {
     this.#flags.forEach((flag, flagname) => {
       if (!this.#aliases.has(flagname)) {
         if (!flag.recognized) {
-          result.add(flagname)
+          result.add(flag.name)
         }
       }
     })
-
     return Array.from(result)
   }
 
