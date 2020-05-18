@@ -1,6 +1,6 @@
 {
   "name": "@author.io/arg",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "description": "An argument parser for CLI applications.",
   "main": "index.js",
   "scripts": {

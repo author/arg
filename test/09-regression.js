@@ -59,7 +59,6 @@ test('Non-Boolean Regression Test', t => {
 
   const Args = new Parser(input, cfg)
   const d = Args.data
-console.log(d)
   t.ok(d.more === true, 'Recognized boolean flag.')
   t.ok(d.t === true, 'Treat unrecognized flags separtely from boolean flag. Expected a flag called "t" to exist. Recognized: ' + d.hasOwnProperty('t'))
   t.end()
