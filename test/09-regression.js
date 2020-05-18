@@ -1,7 +1,7 @@
 import { Parser } from '../index.js'
 import test from 'tape'
 
-test('Boolean Regression Test', t => {
+test('Boolean Defaults Regression Test', t => {
   const input = '-r --environment development index.js'
   const cfg = {
     port: {
@@ -37,5 +37,30 @@ test('Boolean Regression Test', t => {
 
   t.ok(d.reload === true, 'Recognized boolean flags by alias.')
   t.ok(d.cache === true, 'Recognize boolean defaults when they are not specified in the input.')
+  t.end()
+})
+
+// This test assures that non-boolean flags positioned
+// immediately after a boolean flag are treated separately.
+test('Non-Boolean Regression Test', t => {
+  const input = '--more t'
+  const cfg = {
+    test: {
+      alias: 't',
+      allowMultipleValues: true,
+      description: 'test of multiples.'
+    },
+    more: {
+      alias: 'm',
+      description: 'more stuff',
+      type: Boolean
+    }
+  }
+
+  const Args = new Parser(input, cfg)
+  const d = Args.data
+console.log(d)
+  t.ok(d.more === true, 'Recognized boolean flag.')
+  t.ok(d.t === true, 'Treat unrecognized flags separtely from boolean flag. Expected a flag called "t" to exist. Recognized: ' + d.hasOwnProperty('t'))
   t.end()
 })

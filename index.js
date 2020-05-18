@@ -5,6 +5,7 @@ const PARSER = /\s*(?:((?:(?:"(?:\\.|[^"])*")|(?:'[^']*')|(?:\\.)|\S)+)\s*)/gi
 class Parser {
   #args = []
   #flags = new Map()
+  #unknownFlags = new Map()
   #allowUnrecognized = true
   #violations = new Set()
   #ignoreTypes = false
@@ -113,6 +114,16 @@ class Parser {
       }
     })
 
+    this.#unknownFlags.forEach((flag, name) => {
+      data[flag.name] = true
+      Object.defineProperty(sources, flag.name, {
+        enumerable: true,
+        get() {
+          return flag
+        }
+      })
+    })
+
     Object.defineProperty(data, 'flagSource', {
       enumerable: false,
       writable: false,
@@ -147,6 +158,8 @@ class Parser {
 
     let skipNext = false
     let skipped = []
+    let unrecognized = []
+    const bools = new Set(['true', 'false'])
     
     this.#args.forEach((arg, i, args) => {
       if (!skipNext || arg.startsWith('-')) {
@@ -164,7 +177,7 @@ class Parser {
                 isBoolean = true
 
                 if (this.#args[i + 1] !== undefined) {               
-                  if (!new Set(['true', 'false']).has(value.toLowerCase())) {
+                  if (!bools.has(value.toLowerCase())) {
                     skipNext = false
                     flag.value = true
                   } else {
@@ -187,8 +200,15 @@ class Parser {
           } else {
             flag.value = true
           }
-        } else if(!this.exists(arg)) {
+        } else if (!this.exists(arg)) {
           this.addFlag(arg).value = true
+        } else if (!arg.startsWith('-')) {
+          // This clause exists in case an alias
+          // conflicts with the value of an unrecognized flag.
+          let uflag = new Flag(this.#cleanFlag(arg))
+          uflag.strictTypes = !this.#ignoreTypes
+          // this.#flags.set(this.#cleanFlag(arg), uflag)
+          this.#unknownFlags.set(this.#cleanFlag(arg), uflag)
         }
       } else {
         skipped.push([arg, args[i - 1]])
@@ -253,11 +273,15 @@ class Parser {
   }
 
   exists (flag) {
-    return this.#flags.has(this.#cleanFlag(flag))
+    return this.#flags.has(this.#cleanFlag(flag)) || this.#unknownFlags.has(this.#cleanFlag(flag))
   }
 
   typeof (flag) {
     if (!this.exists(flag)) {
+      if (this.#unknownFlags.has(this.#cleanFlag(flag))) {
+        return 'boolean'
+      }
+
       return 'undefined'
     }
 
@@ -266,6 +290,10 @@ class Parser {
 
   value (flag = null) {
     if (!this.exists(flag)) {
+      if (this.#unknownFlags.has(this.#cleanFlag(flag))) {
+        return true
+      }
+
       return undefined
     }
 
