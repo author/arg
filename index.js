@@ -61,6 +61,11 @@ class Parser {
       }
     })
 
+    if (!this.#allowUnrecognized && this.#unknownFlags.size > 0) {
+      this.#validFlags = false
+      this.#unknownFlags.forEach(flag => this.#violations.add(`"${flag.name}" is unrecognized.`))
+    }
+
     return this.#validFlags
   }
 
@@ -78,6 +83,9 @@ class Parser {
         }
       }
     })
+
+    this.#unknownFlags.forEach(flag => result.add(flag.name))
+
     return Array.from(result)
   }
 
@@ -95,7 +103,7 @@ class Parser {
   }
   
   get flags () {
-    return Array.from(this.#flags.keys())
+    return Array.from(this.#flags.keys()).concat(Array.from(this.#unknownFlags.keys()))
   }
 
   get data () {
@@ -244,7 +252,12 @@ class Parser {
   }
 
   getFlag (flag) {
-    return this.#flags.get(this.#cleanFlag(flag))
+    let f = this.#flags.get(this.#cleanFlag(flag))
+    if (f) {
+      return f
+    }
+
+    return this.#unknownFlags.get(this.#cleanFlag(flag))
   }
 
   addFlag(cfg) {
