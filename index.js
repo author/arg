@@ -123,15 +123,15 @@ class Parser {
     })
 
     this.#unknownFlags.forEach((flag, name) => {
-      let name = flag.name
+      let unknownName = flag.name
       let count = 0
-      while (data.hasOwnProperty(name)) {
+      while (data.hasOwnProperty(unknownName)) {
         count++
-        name = `${name}${count}`
+        unknownName = `${unknownName}${count}`
       }
 
-      data[flag.name] = true
-      Object.defineProperty(sources, flag.name, {
+      data[unknownName] = true
+      Object.defineProperty(sources, unknownName, {
         enumerable: true,
         get() {
           return flag
