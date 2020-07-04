@@ -35,7 +35,8 @@
   "devDependencies": {
     "snazzy": "^8.0.0",
     "standard": "^14.3.1",
-    "tap": "^14.10.7"
+    "tap": "^14.10.7",
+    "tape": "^5.0.1"
   },
   "standard": {
     "ignore": [

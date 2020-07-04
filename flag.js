@@ -263,6 +263,10 @@ export default class Flag {
     return Array.from(this.#alias)
   }
 
+  get multipleValuesAllowed () {
+    return this.#allowMultipleValues
+  }
+
   hasAlias (alias) {
     return this.#alias.has(alias)
   }

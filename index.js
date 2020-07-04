@@ -252,8 +252,10 @@ class Parser {
     })
 
     this.#flags.forEach((flag, name) => {
-      if (this.#aliases.has(name) && flag.value === undefined) {
-        flag.aliasOf.value = flag.value
+      if (this.#aliases.has(name)) {
+        if (flag.value !== undefined && !flag.multipleValuesAllowed) {
+          flag.aliasOf.value = flag.value
+        }
       }
     })
   }
