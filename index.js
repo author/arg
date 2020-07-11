@@ -436,9 +436,10 @@ class Parser {
 
     if (!this.#validFlags) {
       if (globalThis.hasOwnProperty('process')) {
+        console.error('InvalidFlags: Process exited with error.')
         return globalThis.process.exit(1)
       } else {
-        throw new Error('Process exited with error.')
+        throw new Error('InvalidFlags: Process exited with error.')
       }
     }
 
