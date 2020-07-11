@@ -48,6 +48,10 @@ export default class Flag {
 
     if (cfg.hasOwnProperty('type')) {
       this.type = cfg.type
+    } else if (cfg.hasOwnProperty('default')) {
+      if (this.#default) {
+        this.type = typeof this.#default
+      }
     }
 
     if (cfg.hasOwnProperty('allowMultipleValues')) {
