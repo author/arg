@@ -65,11 +65,11 @@ Using the script above in a `mycli.js` file could be executed as follows:
 _Output:_
 ```json
 {
-  a: false, 
-  b: 'some value', 
-  c: 'accepted',
-  input: 'testfile.txt',
-  name: 'jane'
+  "a": false, 
+  "b": "some value", 
+  "c": "accepted",
+  "input": "testfile.txt",
+  "name": "jane"
 }
 ```
 
