@@ -1,6 +1,8 @@
-import Flag from "./flag.js"
+import Flag from './flag.js'
 
-const PARSER = /\s*(?:((?:(?:"(?:\\.|[^"])*")|(?:'[^']*')|(?:\\.)|\S)+)\s*)/gi
+// const PARSER = /\s*(?:((?:(?:"(?:\\.|[^"])*")|(?:'[^']*')|(?:\\.)|\S)+)\s*)/gi
+const PARSER = /((-+(?<flag>[^\s\"\']+))(\s+(?<value>([\"\']((\\\"|\\\')|[^\"\'])+[\"\']|[^-][^\s]+)))?|(?<arg>[^\s]+))/gi // eslint-disable-line no-useless-escape
+const BOOLS = new Set(['true', 'false'])
 
 class Parser {
   #args = []
@@ -11,9 +13,10 @@ class Parser {
   #ignoreTypes = false
   #aliases = new Set()
   #validFlags = null
+  #length = 0
 
   #cleanFlag = flag => {
-    return flag.replace(/^\-+/, '').trim().toLowerCase()
+    return flag.replace(/^-+/, '').trim().toLowerCase()
   }
 
   #flagRef = flag => {
@@ -30,15 +33,15 @@ class Parser {
       this.configure(cfg)
     }
 
-    if (globalThis.hasOwnProperty('argv')) {
+    if (globalThis.hasOwnProperty('argv')) { // eslint-disable-line no-prototype-builtins
       this.parse(process.argv.slice(2))
     } else if (argList !== null) {
       this.parse(argList)
     }
   }
 
-  get length() {
-    return this.#args.length
+  get length () {
+    return this.#length
   }
 
   get valid () {
@@ -69,13 +72,13 @@ class Parser {
     return this.#validFlags
   }
 
-  get violations() {
+  get violations () {
     this.#validFlags = this.#validFlags || this.valid // Helps prevent unnecessarily rerunning the validity getter
     return Array.from(this.#violations)
   }
 
   get unrecognizedFlags () {
-    let result = new Set()
+    const result = new Set()
     this.#flags.forEach((flag, flagname) => {
       if (!this.#aliases.has(flagname)) {
         if (!flag.recognized) {
@@ -90,7 +93,7 @@ class Parser {
   }
 
   get recognizedFlags () {
-    let result = new Set()
+    const result = new Set()
     this.#flags.forEach((flag, flagname) => {
       if (!this.#aliases.has(flagname)) {
         if (flag.recognized) {
@@ -101,21 +104,21 @@ class Parser {
 
     return Array.from(result)
   }
-  
+
   get flags () {
     return Array.from(this.#flags.keys()).concat(Array.from(this.#unknownFlags.keys()))
   }
 
   get data () {
-    let data = {}
-    let sources = {}
-    
+    const data = {}
+    const sources = {}
+
     this.#flags.forEach((flag, name) => {
       if (!this.#aliases.has(name)) {
         data[flag.name] = flag.value
         Object.defineProperty(sources, flag.name, {
           enumerable: true,
-          get() {
+          get () {
             return flag
           }
         })
@@ -125,7 +128,7 @@ class Parser {
     this.#unknownFlags.forEach((flag, name) => {
       let unknownName = flag.name
       let count = 0
-      while (data.hasOwnProperty(unknownName)) {
+      while (data.hasOwnProperty(unknownName)) { // eslint-disable-line no-prototype-builtins
         count++
         unknownName = `${unknownName}${count}`
       }
@@ -133,7 +136,7 @@ class Parser {
       data[unknownName] = true
       Object.defineProperty(sources, unknownName, {
         enumerable: true,
-        get() {
+        get () {
           return flag
         }
       })
@@ -150,7 +153,7 @@ class Parser {
   }
 
   configure (config = {}) {
-    for (let [name, cfg] of Object.entries(config)) {
+    for (const [name, cfg] of Object.entries(config)) {
       cfg.name = name
       this.addFlag(cfg).recognized = true
     }
@@ -163,93 +166,60 @@ class Parser {
 
     // Normalize the input
     // If an array is provided, assume the input has been split into
-    // argumnets. Otherwise use the parser RegEx pattern to split
+    // arguments. Otherwise use the parser RegEx pattern to split
     // into arguments.
-    this.#args = Array.isArray(input) ? input : input.match(PARSER).map(i => {
-      i = i.trim()
-      const match = i.match(/((^"(.*)"$)|(^'(.*)'$))/i)
-      return match !== null ? match[3] : i
-    })
+    input = Array.isArray(input) ? input.join(' ') : input
 
-    let skipNext = false
-    let skipped = []
-    let unrecognized = []
-    const bools = new Set(['true', 'false'])
-    
-    this.#args.forEach((arg, i, args) => {
-      if (!skipNext || arg.startsWith('-')) {
-        if (arg.startsWith('-')) {
-          skipNext = true
-          
-          const flag = this.#flagRef(arg)
+    // Parse using regular expression
+    const args = []
+    const flags = []
 
-          if (this.#args[i + 1] !== undefined) {
-            if (!this.#args[i + 1].startsWith('-')) {
-              let value = this.#args[i + 1]
-              let isBoolean = false
+    // Normalize each flag/value pairing
+    Array.from([...input.matchAll(PARSER)]).forEach(parsedArg => {
+      let { flag, value, arg } = parsedArg.groups
 
-              if (flag.type === 'boolean') {
-                isBoolean = true
+      // If the arg attribute is present, add the
+      // value to the arguments placeholder instead
+      // of the flags
+      if (arg) {
+        args.push(arg)
+      } else {
+        // Flags without values are considered boolean "true"
+        value = value !== undefined ? value : true
 
-                if (this.#args[i + 1] !== undefined) {               
-                  if (!bools.has(value.toLowerCase())) {
-                    skipNext = false
-                    flag.value = true
-                  } else {
-                    if (value.trim().toLowerCase() === 'true') {
-                      flag.value = true
-                    } else if (value.trim().toLowerCase() === 'false') {
-                      flag.value = false
-                    }
-                  }
-                }
-              }
+        // Remove surrounding quotes in string values
+        // and convert true/false strings to boolean values.
+        if (typeof value === 'string') {
+          value = value.replace(/^[\"\']|[\"\']$/gi, '').replace(/\\([\"\'])/gi, '$1') // eslint-disable-line no-useless-escape
 
-              // Handle everything else.
-              if (!isBoolean) {
-                flag.value = value
-              }
-            } else {
-              flag.value = true
-            }
-          } else {
-            flag.value = true
+          if (BOOLS.has(value.toLowerCase())) {
+            value = value.toLowerCase() === 'true'
           }
-        } else if (!this.exists(arg)) {
-          this.addFlag(arg).value = true
-        } else if (!arg.startsWith('-')) {
-          // This clause exists in case an alias
-          // conflicts with the value of an unrecognized flag.
-          let uflag = new Flag(this.#cleanFlag(arg))
-          uflag.strictTypes = !this.#ignoreTypes
-          // this.#flags.set(this.#cleanFlag(arg), uflag)
-          this.#unknownFlags.set(this.#cleanFlag(arg), uflag)
         }
-      } else {
-        skipped.push([arg, args[i - 1]])
-        skipNext = false
+
+        flags.push({ flag, value })
       }
     })
 
-    // Handle orphan input items
-    skipped.forEach(flag => {
-      const value = flag[0]
-      const priorFlagValue = flag[1]
+    // Make the length available via private variable
+    this.#length = flags.length + args.length
 
-      if (priorFlagValue === null || priorFlagValue === undefined) {
-        this.addFlag(value)
+    for (const arg of flags) {
+      this.#flagRef(arg.flag).value = arg.value
+    }
+
+    for (const arg of args) {
+      if (!this.exists(arg)) {
+        this.addFlag(arg).value = true
       } else {
-        let priorFlag = this.getFlag(priorFlagValue)
-        if (priorFlag.hasOwnProperty('aliasOf')) {
-          priorFlag = priorFlag.aliasOf
-          priorFlag.value = value
-        }
-        
-        if (!(priorFlag && (priorFlag.recognized || priorFlagValue.startsWith('-')))) {
-          this.addFlag(value)
-        }
+        // This clause exists in case an alias
+        // conflicts with the value of an unrecognized flag.
+        const uflag = new Flag(this.#cleanFlag(arg))
+        uflag.strictTypes = !this.#ignoreTypes
+        // this.#flags.set(this.#cleanFlag(arg), uflag)
+        this.#unknownFlags.set(this.#cleanFlag(arg), uflag)
       }
-    })
+    }
 
     this.#flags.forEach((flag, name) => {
       if (this.#aliases.has(name)) {
@@ -261,7 +231,7 @@ class Parser {
   }
 
   getFlag (flag) {
-    let f = this.#flags.get(this.#cleanFlag(flag))
+    const f = this.#flags.get(this.#cleanFlag(flag))
     if (f) {
       return f
     }
@@ -269,7 +239,7 @@ class Parser {
     return this.#unknownFlags.get(this.#cleanFlag(flag))
   }
 
-  addFlag(cfg) {
+  addFlag (cfg) {
     cfg = typeof cfg === 'object' ? cfg : { name: cfg }
 
     const clean = this.#cleanFlag(cfg.name)
@@ -331,7 +301,7 @@ class Parser {
   }
 
   require () {
-    Array.from(arguments).map(arg => {
+    Array.from(arguments).forEach(arg => {
       if (!this.#aliases.has(arg)) {
         const flag = this.#flagRef(arg)
         flag.required = true
@@ -341,27 +311,31 @@ class Parser {
   }
 
   recognize () {
-    Array.from(arguments).map(arg => (this.getFlag(arg) || this.addFlag(arg)).recognized = true)
+    Array.from(arguments).forEach(arg => {
+      if (!this.getFlag(arg)) {
+        this.addFlag(arg).recognized = true
+      }
+    })
   }
 
-  disallowUnrecognized() {
+  disallowUnrecognized () {
     this.#allowUnrecognized = false
   }
 
-  allowUnrecognized() {
+  allowUnrecognized () {
     this.#allowUnrecognized = true
   }
 
-  ignoreDataTypes() {
+  ignoreDataTypes () {
     this.#ignoreTypes = false
-    
+
     this.#flags.forEach((flag, name) => {
       flag.strictTypes = false
       this.#flags.set(name, flag)
     })
   }
 
-  enforceDataTypes() {
+  enforceDataTypes () {
     this.#ignoreTypes = true
 
     this.#flags.forEach((flag, name) => {
@@ -371,7 +345,7 @@ class Parser {
   }
 
   defaults (obj = {}) {
-    for (let [name, value] of Object.entries(obj)) {
+    for (const [name, value] of Object.entries(obj)) {
       const flag = this.#flagRef(name)
       flag.default = value
       flag.recognized = true
@@ -379,7 +353,7 @@ class Parser {
   }
 
   alias (obj = {}) {
-    for (let [flagname, alias] of Object.entries(obj)) {
+    for (const [flagname, alias] of Object.entries(obj)) {
       const flag = this.#flagRef(flagname)
 
       if (this.#aliases.has(alias) && flagname.toLowerCase() !== flag.name.toLowerCase()) {
@@ -397,11 +371,11 @@ class Parser {
   // In case of duplicate flag, ignore all but last flag value
   allowMultipleValues () {
     for (const flag of arguments) {
-      this.#flagRef(flag).allowMultipleValues()      
+      this.#flagRef(flag).allowMultipleValues()
     }
   }
 
-  preventMultipleValues() {
+  preventMultipleValues () {
     for (const flag of arguments) {
       this.#flagRef(flag).preventMultipleValues()
     }
@@ -435,7 +409,7 @@ class Parser {
     this.#validFlags = this.valid
 
     if (!this.#validFlags) {
-      if (globalThis.hasOwnProperty('process')) {
+      if (globalThis.hasOwnProperty('process')) { // eslint-disable-line no-prototype-builtins
         console.error('InvalidFlags: Process exited with error.\n * ' + this.violations.join('\n * '))
         return globalThis.process.exit(1)
       } else {

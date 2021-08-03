@@ -26,47 +26,47 @@ export default class Flag {
     this.#rawName = cfg.name
     this.#name = cfg.name.replace(/^-+/gi, '').trim()
 
-    if (cfg.hasOwnProperty('description')) {
+    if (cfg.hasOwnProperty('description')) { // eslint-disable-line no-prototype-builtins
       this.#description = cfg.description
     }
 
-    if (cfg.hasOwnProperty('default')) {
+    if (cfg.hasOwnProperty('default')) { // eslint-disable-line no-prototype-builtins
       this.#default = cfg.default
     }
 
-    if (cfg.hasOwnProperty('alias')) {
+    if (cfg.hasOwnProperty('alias')) { // eslint-disable-line no-prototype-builtins
       this.createAlias(cfg.alias)
     }
 
-    if (cfg.hasOwnProperty('aliases')) {
+    if (cfg.hasOwnProperty('aliases')) { // eslint-disable-line no-prototype-builtins
       this.createAlias(cfg.aliases)
     }
 
-    if (cfg.hasOwnProperty('required')) {
+    if (cfg.hasOwnProperty('required')) { // eslint-disable-line no-prototype-builtins
       this.#required = cfg.required
     }
 
-    if (cfg.hasOwnProperty('type')) {
+    if (cfg.hasOwnProperty('type')) { // eslint-disable-line no-prototype-builtins
       this.type = cfg.type
-    } else if (cfg.hasOwnProperty('default')) {
+    } else if (cfg.hasOwnProperty('default')) { // eslint-disable-line no-prototype-builtins
       if (this.#default) {
         this.type = typeof this.#default
       }
     }
 
-    if (cfg.hasOwnProperty('allowMultipleValues')) {
+    if (cfg.hasOwnProperty('allowMultipleValues')) { // eslint-disable-line no-prototype-builtins
       this.#allowMultipleValues = cfg.allowMultipleValues
     }
 
-    if (cfg.hasOwnProperty('strictTypes')) {
+    if (cfg.hasOwnProperty('strictTypes')) { // eslint-disable-line no-prototype-builtins
       this.#strictTypes = cfg.strictTypes
     }
 
-    if (cfg.hasOwnProperty('options')) {
+    if (cfg.hasOwnProperty('options')) { // eslint-disable-line no-prototype-builtins
       this.options = cfg.options
     }
 
-    if (cfg.hasOwnProperty('validate')) {
+    if (cfg.hasOwnProperty('validate')) { // eslint-disable-line no-prototype-builtins
       if (!(cfg.validate instanceof RegExp || typeof cfg.validate === 'function')) {
         throw new Error(`The "validate" configuration attribute for ${this.#rawName} is invalid. Only RegExp and functions are supported (received ${typeof cfg.validate})`)
       }
@@ -98,24 +98,24 @@ export default class Flag {
   get valid () {
     const value = this.value
     this.#violations = new Set()
-    
+
     if (this.#required) {
       if (this.#allowMultipleValues ? this.value.length === 0 : this.value === null) {
         this.#violations = new Set([`"${this.#name}" is required.`])
         return false
       }
     }
-    
+
     if (this.#enum.size > 0) {
       if (this.#allowMultipleValues) {
         const invalid = value.filter(item => !this.#enum.has(item))
-        
+
         if (invalid.length > 0) {
           invalid.forEach(v => this.#violations.add(`"${v}" is invalid. Expected one of: ${Array.from(this.#enum).join(', ')}`))
           return false
         }
       } else if (!this.#enum.has(value)) {
-        this.#violations.add(`"${value}" is invalid. Expected one of: ${ Array.from(this.#enum).join(', ') }`)
+        this.#violations.add(`"${value}" is invalid. Expected one of: ${Array.from(this.#enum).join(', ')}`)
         return false
       }
     }
@@ -125,14 +125,14 @@ export default class Flag {
 
       if (type !== 'any' && type !== '*' && this.recognized) {
         if (this.#allowMultipleValues) {
-          const invalidTypes = value.filter(item => typeof item !== type)
-          
-          if (invalidTypes.length > 0) {        
-            invalidTypes.forEach(v => this.#violations.add(`"${this.name}" (${v}) should be a ${ type }, not ${ typeof v }.`))
+          const invalidTypes = value.filter(item => typeof item !== type) // eslint-disable-line valid-typeof
+
+          if (invalidTypes.length > 0) {
+            invalidTypes.forEach(v => this.#violations.add(`"${this.name}" (${v}) should be a ${type}, not ${typeof v}.`))
             return false
           }
-        } else if (value !== null && typeof value !== type) {
-          this.#violations.add(`"${this.name}" should be a ${ type }, not ${typeof value}.`)
+        } else if (value !== null && typeof value !== type) { // eslint-disable-line valid-typeof
+          this.#violations.add(`"${this.name}" should be a ${type}, not ${typeof value}.`)
           return false
         }
       }
@@ -156,7 +156,7 @@ export default class Flag {
         }
       }
     }
-    
+
     return true
   }
 
@@ -182,7 +182,7 @@ export default class Flag {
           this.#type = Number
           break
         case 'bigint':
-          this.#type = BigInt
+          this.#type = BigInt // eslint-disable-line no-undef
           break
         case 'boolean':
           this.#type = Boolean
@@ -215,11 +215,11 @@ export default class Flag {
     this.#name = value.trim()
   }
 
-  get description() {
+  get description () {
     return this.#name
   }
 
-  set description(value) {
+  set description (value) {
     this.#description = value.trim()
   }
 
@@ -228,7 +228,7 @@ export default class Flag {
       if (this.#default === null) {
         return []
       }
-      
+
       if (!Array.isArray(this.#default)) {
         return [this.#default]
       }
@@ -243,7 +243,7 @@ export default class Flag {
         this.#value = value
         return
       }
-    
+
       this.#value = this.#value || []
       this.#value.push(value)
     } else {
@@ -257,10 +257,10 @@ export default class Flag {
 
   set options (value) {
     if (typeof value === 'string') {
-        value = value.split(',').map(option => option.trim())
-      }
+      value = value.split(',').map(option => option.trim())
+    }
 
-      this.#enum = new Set(value)
+    this.#enum = new Set(value)
   }
 
   get aliases () {
@@ -275,7 +275,7 @@ export default class Flag {
     return this.#alias.has(alias)
   }
 
-  createAlias() {
+  createAlias () {
     for (let alias of arguments) {
       // Convert set to array
       if (alias instanceof Set) {

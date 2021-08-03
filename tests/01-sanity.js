@@ -1,5 +1,5 @@
-import { Parser } from '../index.js'
-import test from 'tape'
+import { Parser } from '@author.io/arg'
+import test from 'tappedout'
 
 test('Basic Tests', t => {
   const Args = new Parser()
