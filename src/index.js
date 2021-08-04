@@ -205,7 +205,11 @@ class Parser {
     this.#length = flags.length + args.length
 
     for (const arg of flags) {
-      this.#flagRef(arg.flag).value = arg.value
+      let ref = this.#flagRef(arg.flag)
+      if (ref.aliasOf) {
+        ref = ref.aliasOf
+      }
+      ref.value = arg.value
     }
 
     for (const arg of args) {

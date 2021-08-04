@@ -64,7 +64,7 @@ test('Non-Boolean Regression Test', t => {
   t.end()
 })
 
-test('Flag values with spaces', t => {
+test('Spaces in flag values', t => {
   const input = 'test -c "my connection"'
   const cfg = {
     connection: {
@@ -74,5 +74,19 @@ test('Flag values with spaces', t => {
   const { data } = new Parser(input, cfg)
 
   t.expect('my connection', data.connection, 'Extract escaped values with spaces')
+  t.end()
+})
+
+test('Multi-value flags', t => {
+  const input = 'test -f a.js -f b.js'
+  const cfg = {
+    file: {
+      alias: 'f',
+      allowMultipleValues: true
+    }
+  }
+  const { data } = new Parser(input, cfg)
+
+  t.expect(2, data.file.length, 'Extract multiple values')
   t.end()
 })
