@@ -63,3 +63,16 @@ test('Non-Boolean Regression Test', t => {
   t.ok(d.t === true, 'Treat unrecognized flags separtely from boolean flag. Expected a flag called "t" to exist. Recognized: ' + d.hasOwnProperty('t'))
   t.end()
 })
+
+test('Flag values with spaces', t => {
+  const input = 'test -c "my connection"'
+  const cfg = {
+    connection: {
+      alias: 'c'
+    }
+  }
+  const { data } = new Parser(input, cfg)
+
+  t.expect('my connection', data.connection, 'Extract escaped values with spaces')
+  t.end()
+})
