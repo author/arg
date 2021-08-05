@@ -90,3 +90,18 @@ test('Multi-value flags', t => {
   t.expect(2, data.file.length, 'Extract multiple values')
   t.end()
 })
+
+test('Multi-value quoted and unquoted arguments', t => {
+  const input = 'me@domain.com "John Doe" empty -name \'Jill Doe\''
+  const cfg = {
+    name: { alias: 'n' }
+  }
+  const { data } = new Parser(input, cfg)
+
+  t.expect('Jill Doe', data.name, 'recognized single quoted flag')
+  t.ok(data['me@domain.com'], 'recognized unquoted string with special characters')
+  t.ok(data['John Doe'], 'recognized double quoted argument with space in the value')
+  t.ok(data.empty, 'recognized unquoted argument')
+
+  t.end()
+})

@@ -1,7 +1,7 @@
 import Flag from './flag.js'
 
 // const PARSER = /\s*(?:((?:(?:"(?:\\.|[^"])*")|(?:'[^']*')|(?:\\.)|\S)+)\s*)/gi
-const PARSER = /((-+(?<flag>[^\s\"\']+))(\s+(?<value>([\"\']((\\\"|\\\')|[^\"\'])+[\"\']|[^-][^\s]+)))?|(?<arg>[^\s]+))/gi // eslint-disable-line no-useless-escape
+const PARSER = /((-+(?<flag>[^\s\"\']+))(\s+((?<value>[\"\'](?<unquoted_value>((\\\"|\\\')|[^\"\'])+)[\"\']|[^-][^\s]+)))?|(([\"\'](?<quoted_arg>((\\\"|\\\')|[^\"\'])+)[\"\']))|(?<arg>[^\s]+))/gi // eslint-disable-line no-useless-escape
 const BOOLS = new Set(['true', 'false'])
 
 class Parser {
@@ -176,25 +176,24 @@ class Parser {
 
     // Normalize each flag/value pairing
     Array.from([...input.matchAll(PARSER)]).forEach(parsedArg => {
-      let { flag, value, arg } = parsedArg.groups
+      let { flag, value, unquoted_value, quoted_arg, arg } = parsedArg.groups
 
       // If the arg attribute is present, add the
       // value to the arguments placeholder instead
       // of the flags
       if (arg) {
         args.push(arg)
+      } else if (quoted_arg) {
+        args.push(quoted_arg)
       } else {
+        value = unquoted_value || value
         // Flags without values are considered boolean "true"
         value = value !== undefined ? value : true
 
         // Remove surrounding quotes in string values
         // and convert true/false strings to boolean values.
-        if (typeof value === 'string') {
-          value = value.replace(/^[\"\']|[\"\']$/gi, '').replace(/\\([\"\'])/gi, '$1') // eslint-disable-line no-useless-escape
-
-          if (BOOLS.has(value.toLowerCase())) {
-            value = value.toLowerCase() === 'true'
-          }
+        if (typeof value === 'string' && BOOLS.has(value.toLowerCase())) {
+          value = value.toLowerCase() === 'true'
         }
 
         flags.push({ flag, value })

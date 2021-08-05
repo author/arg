@@ -46,6 +46,7 @@ test('Support custom validation methods', t => {
   let Args = new Parser(input, cfg)
 
   t.ok(Args.violations.length === 0, `Expected no violations, recognized ${Args.violations.length}.`)
+  if (Args.violations.length > 0) { console.log(Args.violations) }
 
   cfg.bad = {
     alias: 'b',
@@ -54,6 +55,7 @@ test('Support custom validation methods', t => {
 
   Args = new Parser(input, cfg)
   t.ok(Args.violations.length === 1, `Expected 1 violation, recognized ${Args.violations.length}.`)
+  if (Args.violations.length > 1) { console.log(Args.violations) }
 
   Args = new Parser('test --pass abbbbc', {
     pass: {
@@ -62,6 +64,7 @@ test('Support custom validation methods', t => {
   })
 
   t.ok(Args.violations.length === 0, `Expected no violations, recognized ${Args.violations.length}.`)
+  if (Args.violations.length > 0) { console.log(Args.violations) }
 
   t.end()
 })
