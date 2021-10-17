@@ -233,7 +233,10 @@ class Parser {
 
       if (typeof flag.value !== flag.type) {
         if (flag.type === 'boolean') {
-          this.addFlag(flag.value)
+          const unknownFlag = new Flag(this.#cleanFlag(flag.value))
+          unknownFlag.strictTypes = false
+          this.#unknownFlags.set(this.#cleanFlag(flag.value), unknownFlag)
+
           flag.value = true
         }
       }
