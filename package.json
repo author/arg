@@ -55,7 +55,7 @@
   },
   "dev": {
     "alias": {
-      "@author.io/arg": "/app/.dist/arg/index.js"
+      "@author.io/arg": "/app/.dist/@author.io/arg/index.js"
     }
   },
   "standard": {

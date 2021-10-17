@@ -105,3 +105,32 @@ test('Multi-value quoted and unquoted arguments', t => {
 
   t.end()
 })
+
+test('Boolean flags followed by unnamed string argument', t => {
+  const input = '-rt deno@1.7.5 -dm --verbose ./tests/*-*.js'
+  const cfg = {
+    runtime: {
+      alias: 'rt',
+      description: 'The runtime to build for. This does not do anything by default, but will provide an environment variable called RUNTIME to the internal build process (which can be overridden).',
+      options: ['node', 'browser', 'deno'],
+      default: 'node'
+    },
+    debugmodule: {
+      alias: 'dm',
+      description: 'Generate a debugging module containing sourcemaps',
+      type: 'boolean'
+    },
+    verbose: {
+      description: 'Add verbose logging. This usually displays the command used to launch the container.',
+      type: 'boolean'
+    },
+  }
+  const { data } = new Parser(input, cfg)
+
+  t.expect('deno@1.7.5', data.runtime, 'recognized string flag')
+  t.expect(true, data.debugmodule, 'recognized first boolean flag')
+  t.expect(true, data.verbose, 'recognized second boolean flag')
+  t.ok(data['./tests/*-*.js'] !== undefined, 'recognized unnamed string argument')
+
+  t.end()
+})

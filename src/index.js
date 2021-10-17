@@ -230,6 +230,13 @@ class Parser {
           flag.aliasOf.value = flag.value
         }
       }
+
+      if (typeof flag.value !== flag.type) {
+        if (flag.type === 'boolean') {
+          this.addFlag(flag.value)
+          flag.value = true
+        }
+      }
     })
   }
 
