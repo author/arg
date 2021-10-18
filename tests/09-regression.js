@@ -59,8 +59,8 @@ test('Non-Boolean Regression Test', t => {
 
   const Args = new Parser(input, cfg)
   const d = Args.data
-  t.ok(d.more === true, 'Recognized boolean flag.')
-  t.ok(d.t === true, 'Treat unrecognized flags separtely from boolean flag. Expected a flag called "t" to exist. Recognized: ' + d.hasOwnProperty('t'))
+  t.expect(true, d.more, 'Recognized boolean flag.')
+  t.expect(true, d.t, 'Treat unrecognized flags separtely from boolean flag. Expected a flag called "t" to exist. Recognized: ' + d.hasOwnProperty('t'))
   t.end()
 })
 
@@ -130,7 +130,7 @@ test('Boolean flags followed by unnamed string argument', t => {
   t.expect('deno@1.7.5', data.runtime, 'recognized string flag')
   t.expect(true, data.debugmodule, 'recognized first boolean flag')
   t.expect(true, data.verbose, 'recognized second boolean flag')
-  t.ok(data['./tests/*-*.js'] !== undefined, 'recognized unnamed string argument')
+  t.expect('./tests/*-*.js', data.unknown1, 'recognized unnamed string argument')
 
   t.end()
 })

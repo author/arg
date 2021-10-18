@@ -133,7 +133,7 @@ class Parser {
         unknownName = `${unknownName}${count}`
       }
 
-      data[unknownName] = true
+      data[unknownName] = flag.value !== null ? flag.value : true
       Object.defineProperty(sources, unknownName, {
         enumerable: true,
         get () {
@@ -234,9 +234,10 @@ class Parser {
       if (typeof flag.value !== flag.type) {
         if (flag.type === 'boolean') {
           const unknownFlag = new Flag(this.#cleanFlag(`unknown${this.#unknownFlags.size + 1}`))
-          unknownFlag.strictTypes = false
+          unknownFlag.strictTypes = !this.#ignoreTypes
           unknownFlag.value = flag.value
-          if (!this.#unknownFlags.has(unknownName.name)) {
+
+          if (!this.#unknownFlags.has(unknownFlag.name)) {
             this.#unknownFlags.set(unknownFlag.name, unknownFlag)
           }
 
