@@ -16,7 +16,7 @@ class Parser {
   #length = 0
 
   #cleanFlag = flag => {
-    return flag.replace(/^-+/, '').trim().toLowerCase()
+    return flag.replace(/^-+/g, '').trim().toLowerCase()
   }
 
   #flagRef = flag => {
@@ -233,9 +233,12 @@ class Parser {
 
       if (typeof flag.value !== flag.type) {
         if (flag.type === 'boolean') {
-          const unknownFlag = new Flag(this.#cleanFlag(flag.value))
+          const unknownFlag = new Flag(this.#cleanFlag(`unknown${this.#unknownFlags.size + 1}`))
           unknownFlag.strictTypes = false
-          this.#unknownFlags.set(this.#cleanFlag(flag.value), unknownFlag)
+          unknownFlag.value = flag.value
+          if (!this.#unknownFlags.has(unknownName.name)) {
+            this.#unknownFlags.set(unknownFlag.name, unknownFlag)
+          }
 
           flag.value = true
         }
