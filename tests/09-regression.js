@@ -128,16 +128,23 @@ test('Boolean flags followed by unnamed string argument', t => {
       alias: 'o',
       description: 'other bool',
       type: 'boolean'
+    },
+    more: {
+      alias: 'm',
+      description: 'other bool',
+      type: 'boolean',
+      default: true
     }
   }
   const { data } = new Parser(input, cfg)
 
-  t.expect('deno@1.7.5', data.runtime, 'recognized string flag')
-  t.expect(true, data.debugmodule, 'recognized first boolean flag')
-  t.expect(true, data.verbose, 'recognized second boolean flag')
-  t.expect('./tests/*-*.js', data.unknown1, 'recognized unnamed string argument')
+  t.expect('deno@1.7.5', data.runtime, 'Recognized string flag')
+  t.expect(true, data.debugmodule, 'Recognized first boolean flag')
+  t.expect(true, data.verbose, 'Recognized second boolean flag')
+  t.expect('./tests/*-*.js', data.unknown1, 'Recognized unnamed string argument')
   t.expect(false, data.other, 'Unspecified boolean defaults to appropriate value')
   t.ok(!data.unknown2, 'No additional unknown values')
+  t.expect(true, data.more, 'Non-specified boolean defaults to defined value')
 
   t.end()
 })
