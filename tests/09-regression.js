@@ -124,6 +124,11 @@ test('Boolean flags followed by unnamed string argument', t => {
       description: 'Add verbose logging. This usually displays the command used to launch the container.',
       type: 'boolean'
     },
+    other: {
+      alias: 'o',
+      description: 'other bool',
+      type: 'boolean'
+    }
   }
   const { data } = new Parser(input, cfg)
 
@@ -131,6 +136,8 @@ test('Boolean flags followed by unnamed string argument', t => {
   t.expect(true, data.debugmodule, 'recognized first boolean flag')
   t.expect(true, data.verbose, 'recognized second boolean flag')
   t.expect('./tests/*-*.js', data.unknown1, 'recognized unnamed string argument')
+  t.expect(false, data.other, 'Unspecified boolean defaults to appropriate value')
+  t.ok(!data.unknown2, 'No additional unknown values')
 
   t.end()
 })

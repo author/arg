@@ -115,7 +115,12 @@ class Parser {
 
     this.#flags.forEach((flag, name) => {
       if (!this.#aliases.has(name)) {
-        data[flag.name] = flag.value
+        if (flag.type === 'boolean' && flag.value === null) {
+          data[flag.name] = false
+        } else {
+          data[flag.name] = flag.value
+        }
+
         Object.defineProperty(sources, flag.name, {
           enumerable: true,
           get () {
@@ -233,15 +238,19 @@ class Parser {
 
       if (typeof flag.value !== flag.type) {
         if (flag.type === 'boolean') {
-          const unknownFlag = new Flag(this.#cleanFlag(`unknown${this.#unknownFlags.size + 1}`))
-          unknownFlag.strictTypes = !this.#ignoreTypes
-          unknownFlag.value = flag.value
+          if (flag.value === null) {
+            flag.value = false
+          } else {
+            const unknownFlag = new Flag(this.#cleanFlag(`unknown${this.#unknownFlags.size + 1}`))
+            unknownFlag.strictTypes = !this.#ignoreTypes
+            unknownFlag.value = flag.value
 
-          if (!this.#unknownFlags.has(unknownFlag.name)) {
-            this.#unknownFlags.set(unknownFlag.name, unknownFlag)
+            if (!this.#unknownFlags.has(unknownFlag.name)) {
+              this.#unknownFlags.set(unknownFlag.name, unknownFlag)
+            }
+
+            flag.value = true
           }
-
-          flag.value = true
         }
       }
     })
