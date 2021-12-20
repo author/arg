@@ -148,3 +148,12 @@ test('Boolean flags followed by unnamed string argument', t => {
 
   t.end()
 })
+
+test('Flags with hyphens should not strip hypen', t => {
+  const input = `session account api_profiles remove "-d1pkFXOnEmvbi-xwDJ8H"`
+  const { data } = new Parser(input)
+
+  t.expect(true, data['-d1pkFXOnEmvbi-xwDJ8H'], 'hyphenated argument recognized')
+
+  t.end()
+})

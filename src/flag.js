@@ -24,7 +24,7 @@ export default class Flag {
     }
 
     this.#rawName = cfg.name
-    this.#name = cfg.name.replace(/^-+/gi, '').trim()
+    this.#name = cfg.name // .replace(/^-+/gi, '').trim()
 
     if (cfg.hasOwnProperty('description')) { // eslint-disable-line no-prototype-builtins
       this.#description = cfg.description

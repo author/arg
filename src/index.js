@@ -14,6 +14,7 @@ class Parser {
   #aliases = new Set()
   #validFlags = null
   #length = 0
+  #quotedFlags = new Set()
 
   #cleanFlag = flag => {
     return flag.replace(/^-+/g, '').trim().toLowerCase()
@@ -181,17 +182,18 @@ class Parser {
 
     // Normalize each flag/value pairing
     Array.from([...input.matchAll(PARSER)]).forEach(parsedArg => {
-      let { flag, value, unquoted_value, quoted_arg, arg } = parsedArg.groups
+      let { flag, value, unquoted_value, quoted_arg, arg } = parsedArg.groups // eslint-disable-line camelcase
 
       // If the arg attribute is present, add the
       // value to the arguments placeholder instead
       // of the flags
       if (arg) {
         args.push(arg)
-      } else if (quoted_arg) {
+      } else if (quoted_arg) { // eslint-disable-line camelcase
         args.push(quoted_arg)
+        this.#quotedFlags.add(this.#cleanFlag(quoted_arg))
       } else {
-        value = unquoted_value || value
+        value = unquoted_value || value // eslint-disable-line camelcase
         // Flags without values are considered boolean "true"
         value = value !== undefined ? value : true
 
@@ -236,7 +238,7 @@ class Parser {
         }
       }
 
-      if (typeof flag.value !== flag.type) {
+      if (typeof flag.value !== flag.type) { // eslint-disable-line valid-typeof
         if (flag.type === 'boolean') {
           if (flag.value === null) {
             flag.value = false
@@ -268,7 +270,8 @@ class Parser {
   addFlag (cfg) {
     cfg = typeof cfg === 'object' ? cfg : { name: cfg }
 
-    const clean = this.#cleanFlag(cfg.name)
+    const preclean = this.#cleanFlag(cfg.name)
+    const clean = this.#quotedFlags.has(preclean) ? cfg.name : preclean
 
     if (this.#flags.has(clean)) {
       throw new Error(`"${cfg.name}" flag already exists.`)
