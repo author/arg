@@ -9,8 +9,10 @@ There are many CLI argument parsers for Node.js. This differs in the following w
 
 After writing countless CLI utilities, it became clear that the majority of most existing libraries contain a ton of code that really isn't necessary 99% of the time. This library is still very powerful, but works very transparently, with a minimal API.
 
-> **This tool is just a parser.** It parses arguments and optionally enforces developer-defined rules. It exposes all relevant aspects of the arguments so developers can use the parsed content in any manner. It does not attempt to autogenerate help screens or apply any other "blackbox" functionality. WYSIWYG.<br/>
+> **This tool is just a parser.** It parses arguments and optionally enforces developer-defined rules. It exposes all relevant aspects of the arguments so developers can use the parsed content in any manner. It does not attempt to autogenerate help screens or apply any other "blackbox" functionality. WYSIWYG.<br/><br/>
 **If your tool needs more management/organization features, see the [@author.io/shell](https://github.com/author/shell) micro-framework** _(which is built atop this library)_**.**
+
+> This library is part of the [CLI-First development initiative](https://github.com/coreybutler/clifirst).
 
 ## Verbose Example
 
